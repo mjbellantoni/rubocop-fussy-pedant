@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require 'rubocop'
-require 'rubocop/rspec/expect_offense'
+require 'rubocop/rspec/support'
 require 'rubocop-fussy-pedant'
 
 RSpec.configure do |config|

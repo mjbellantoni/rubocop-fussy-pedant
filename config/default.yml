@@ -10,3 +10,11 @@ FussyPedant/RSpec:
 
 FussyPedant/Rake:
   Enabled: true
+
+FussyPedant/FactoryBot:
+  Enabled: true
+
+FussyPedant/FactoryBot/TraitsAlphabeticalOrder:
+  Enabled: true
+  Include:
+    - 'spec/support/factories/**/*.rb'

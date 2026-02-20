@@ -18,3 +18,7 @@ Naming/FileName:
 
 Gemspec/DevelopmentDependencies:
   Enabled: false
+
+RSpec/ExampleLength:
+  Exclude:
+    - 'spec/**/*'
