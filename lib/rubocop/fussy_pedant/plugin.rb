@@ -4,6 +4,7 @@ require 'lint_roller'
 
 module RuboCop
   module FussyPedant
+    # RuboCop plugin integration for rubocop-fussy-pedant.
     class Plugin < LintRoller::Plugin
       def about
         LintRoller::About.new(
