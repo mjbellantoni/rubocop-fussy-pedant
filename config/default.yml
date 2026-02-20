@@ -1,0 +1,12 @@
+---
+FussyPedant/Ruby:
+  Enabled: true
+
+FussyPedant/Rails:
+  Enabled: true
+
+FussyPedant/RSpec:
+  Enabled: true
+
+FussyPedant/Rake:
+  Enabled: true
