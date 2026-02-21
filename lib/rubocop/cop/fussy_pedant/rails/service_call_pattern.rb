@@ -190,6 +190,7 @@ module RuboCop
 
           def service_class?(receiver_node)
             return false unless receiver_node&.const_type?
+            return false unless services_directory
 
             class_name = receiver_node.source
             file_path = class_name
@@ -198,8 +199,14 @@ module RuboCop
                         .gsub(/([a-z\d])([A-Z])/, '\1_\2')
                         .downcase
 
-            services_path = File.expand_path("../../../app/services/#{file_path}.rb", __dir__)
-            File.exist?(services_path)
+            File.exist?(File.join(services_directory, "#{file_path}.rb"))
+          end
+
+          def services_directory
+            dir = cop_config['ServicesDirectory']
+            return if dir.nil? || dir.empty?
+
+            File.join(config.base_dir_for_path_parameters, dir)
           end
 
           def in_services_directory?

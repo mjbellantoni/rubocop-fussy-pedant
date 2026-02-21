@@ -21,5 +21,6 @@ FussyPedant/FactoryBot/TraitsAlphabeticalOrder:
 
 FussyPedant/Rails/ServiceCallPattern:
   Enabled: true
+  ServicesDirectory: ''
   Include:
     - 'app/services/**/*.rb'

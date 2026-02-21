@@ -113,8 +113,16 @@ end
 ```yaml
 FussyPedant/Rails/ServiceCallPattern:
   Enabled: true
+  ServicesDirectory: ''
   Include:
     - 'app/services/**/*.rb'
+```
+
+Rules 1-4 work out of the box. Rule 5 (no direct `.new` instantiation) requires setting `ServicesDirectory` so the cop can check whether a class is a service by looking for its file on disk:
+
+```yaml
+FussyPedant/Rails/ServiceCallPattern:
+  ServicesDirectory: app/services
 ```
 
 The cop skips exception classes, modules, and allows `.new` calls within a service's own `self.call` method and in spec files.

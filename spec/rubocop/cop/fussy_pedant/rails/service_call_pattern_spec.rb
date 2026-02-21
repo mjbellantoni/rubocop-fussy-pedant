@@ -155,17 +155,7 @@ RSpec.describe RuboCop::Cop::FussyPedant::Rails::ServiceCallPattern, :config do
   end
 
   context 'when service is directly instantiated in production code' do
-    it 'does not register offense for stdlib classes' do
-      expect_no_offenses(<<~RUBY, '/app/controllers/users_controller.rb')
-        class UsersController
-          def create
-            StringIO.new("content")
-          end
-        end
-      RUBY
-    end
-
-    it 'does not register offense for non-existent service classes' do
+    it 'does not register offense when ServicesDirectory is not configured' do
       expect_no_offenses(<<~RUBY, '/app/controllers/users_controller.rb')
         class UsersController
           def create
@@ -175,26 +165,71 @@ RSpec.describe RuboCop::Cop::FussyPedant::Rails::ServiceCallPattern, :config do
       RUBY
     end
 
-    it 'does not register offense for .new in service own .call method' do
-      expect_no_offenses(<<~RUBY, '/app/services/my_service.rb')
-        class MyService
-          def self.call(...)
-            new(...).call
-          end
+    context 'when ServicesDirectory is configured' do
+      before do
+        allow(cop).to receive(:cop_config).and_return(
+          'ServicesDirectory' => 'app/services',
+          'Enabled' => true
+        )
+      end
 
-          def initialize(foo:)
-            @foo = foo
-          end
+      it 'registers offense for .new on a known service class' do
+        allow(File).to receive(:exist?).and_call_original
+        allow(File).to receive(:exist?).with(%r{app/services/my_service\.rb$}).and_return(true)
 
-          def call
-            "result"
+        expect_offense(<<~RUBY, '/app/controllers/users_controller.rb')
+          class UsersController
+            def create
+              MyService.new(foo: params[:foo])
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ FussyPedant/Rails/ServiceCallPattern: Services should be invoked via .call, not .new
+            end
           end
-        end
-      RUBY
+        RUBY
+      end
+
+      it 'does not register offense for non-service classes' do
+        allow(File).to receive(:exist?).and_call_original
+        allow(File).to receive(:exist?).with(%r{app/services/}).and_return(false)
+
+        expect_no_offenses(<<~RUBY, '/app/controllers/users_controller.rb')
+          class UsersController
+            def create
+              StringIO.new("content")
+            end
+          end
+        RUBY
+      end
+
+      it 'does not register offense for .new in service own .call method' do
+        expect_no_offenses(<<~RUBY, '/app/services/my_service.rb')
+          class MyService
+            def self.call(...)
+              new(...).call
+            end
+
+            def initialize(foo:)
+              @foo = foo
+            end
+
+            def call
+              "result"
+            end
+          end
+        RUBY
+      end
     end
   end
 
   context 'when service is instantiated in spec file' do
+    before do
+      allow(cop).to receive(:cop_config).and_return(
+        'ServicesDirectory' => 'app/services',
+        'Enabled' => true
+      )
+      allow(File).to receive(:exist?).and_call_original
+      allow(File).to receive(:exist?).with(%r{app/services/my_service\.rb$}).and_return(true)
+    end
+
     it 'does not register an offense' do
       expect_no_offenses(<<~RUBY, '/spec/services/my_service_spec.rb')
         RSpec.describe MyService do
