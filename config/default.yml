@@ -18,3 +18,8 @@ FussyPedant/FactoryBot/TraitsAlphabeticalOrder:
   Enabled: true
   Include:
     - 'spec/support/factories/**/*.rb'
+
+FussyPedant/Rails/ServiceCallPattern:
+  Enabled: true
+  Include:
+    - 'app/services/**/*.rb'
