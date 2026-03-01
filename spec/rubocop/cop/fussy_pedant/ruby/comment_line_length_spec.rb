@@ -139,6 +139,54 @@ RSpec.describe RuboCop::Cop::FussyPedant::Ruby::CommentLineLength, :config do
     end
   end
 
+  context 'with URLs' do
+    context 'when a line contains only a URL' do
+      it 'does not register an offense' do
+        expect_no_offenses(<<~RUBY)
+          # https://example.com/very/long/path/that/exceeds/the/column/limit/by/a/lot
+        RUBY
+      end
+    end
+
+    context 'when a comment is just a URL with no other text' do
+      it 'does not register an offense even if URL exceeds limit' do
+        expect_no_offenses(<<~RUBY)
+          # https://example.com/very/long/path/that/exceeds/limit
+        RUBY
+      end
+    end
+
+    context 'when a URL is mid-sentence' do
+      it 'wraps around the URL keeping it intact' do
+        expect_offense(<<~RUBY)
+          # See the docs at https://example.com/long/path for more details about this.
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Comment line exceeds 40 columns. [76/40]
+        RUBY
+
+        expect_correction(<<~RUBY)
+          # See the docs at
+          # https://example.com/long/path for more
+          # details about this.
+        RUBY
+      end
+    end
+
+    context 'when a URL exceeds the limit on its own' do
+      it 'places the URL on its own line' do
+        expect_offense(<<~RUBY)
+          # See https://example.com/very/long/path/that/exceeds/the/column/limit for details.
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Comment line exceeds 40 columns. [83/40]
+        RUBY
+
+        expect_correction(<<~RUBY)
+          # See
+          # https://example.com/very/long/path/that/exceeds/the/column/limit
+          # for details.
+        RUBY
+      end
+    end
+  end
+
   context 'with autocorrect' do
     context 'when a single long comment line needs wrapping' do
       it 'wraps at the column limit' do

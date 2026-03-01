@@ -34,7 +34,7 @@ module RuboCop
 
           def eligible_comments
             processed_source.comments.select do |comment|
-              full_line_comment?(comment) && !special_comment?(comment)
+              full_line_comment?(comment) && !special_comment?(comment) && !url_only_comment?(comment)
             end
           end
 
@@ -135,6 +135,15 @@ module RuboCop
           def full_line_comment?(comment)
             line = processed_source.lines[comment.location.line - 1]
             line.strip.start_with?('#')
+          end
+
+          def url_only_comment?(comment)
+            text = comment.text.sub(/\A#\s?/, '')
+            url?(text)
+          end
+
+          def url?(word)
+            word.match?(%r{\Ahttps?://\S+\z})
           end
 
           ANNOTATION_KEYWORDS = %w[TODO FIXME NOTE HACK OPTIMIZE REVIEW].freeze
