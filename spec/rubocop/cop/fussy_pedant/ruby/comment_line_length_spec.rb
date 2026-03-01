@@ -95,4 +95,47 @@ RSpec.describe RuboCop::Cop::FussyPedant::Ruby::CommentLineLength, :config do
       RUBY
     end
   end
+
+  context 'when multiple consecutive comment lines exceed the limit' do
+    it 'registers one offense per paragraph' do
+      expect_offense(<<~RUBY)
+        # This is the first very long line in a paragraph that exceeds the column limit.
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Comment line exceeds 40 columns. [80/40]
+        # This is the second long line in that same paragraph and also exceeds the limit.
+      RUBY
+    end
+  end
+
+  context 'when paragraphs are separated by blank lines' do
+    it 'registers separate offenses for each paragraph' do
+      expect_offense(<<~RUBY)
+        # This is a long line in paragraph one that goes beyond the limit for sure yes.
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Comment line exceeds 40 columns. [79/40]
+
+        # This is a long line in paragraph two that also goes beyond the column limit.
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Comment line exceeds 40 columns. [78/40]
+      RUBY
+    end
+  end
+
+  context 'when paragraphs are separated by empty comment lines' do
+    it 'registers separate offenses for each paragraph' do
+      expect_offense(<<~RUBY)
+        # This is a long line in paragraph one that goes beyond the limit for sure yes.
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Comment line exceeds 40 columns. [79/40]
+        #
+        # This is a long line in paragraph two that also goes beyond the column limit.
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Comment line exceeds 40 columns. [78/40]
+      RUBY
+    end
+  end
+
+  context 'when a paragraph has no overlength lines' do
+    it 'does not register an offense' do
+      expect_no_offenses(<<~RUBY)
+        # Short line one.
+        # Short line two.
+      RUBY
+    end
+  end
 end

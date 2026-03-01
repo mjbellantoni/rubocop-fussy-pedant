@@ -26,18 +26,56 @@ module RuboCop
                 '[%<current>d/%<max>d]'
 
           def on_new_investigation
-            processed_source.comments.each do |comment|
-              next unless full_line_comment?(comment)
-              next if special_comment?(comment)
-
-              length = line_length(comment)
-              next if length <= max_column
-
-              add_offense(comment, message: format(MSG, current: length, max: max_column))
-            end
+            paragraphs = group_into_paragraphs(eligible_comments)
+            paragraphs.each { |paragraph| check_paragraph(paragraph) }
           end
 
           private
+
+          def eligible_comments
+            processed_source.comments.select do |comment|
+              full_line_comment?(comment) && !special_comment?(comment)
+            end
+          end
+
+          def group_into_paragraphs(comments)
+            return [] if comments.empty?
+
+            paragraphs = []
+            current_paragraph = [comments.first]
+
+            comments.each_cons(2) do |prev, curr|
+              if same_paragraph?(prev, curr)
+                current_paragraph << curr
+              else
+                paragraphs << current_paragraph
+                current_paragraph = [curr]
+              end
+            end
+
+            paragraphs << current_paragraph
+            paragraphs
+          end
+
+          def same_paragraph?(prev_comment, curr_comment)
+            curr_comment.location.line == prev_comment.location.line + 1 &&
+              curr_comment.source_range.column == prev_comment.source_range.column &&
+              !empty_comment?(curr_comment)
+          end
+
+          def empty_comment?(comment)
+            comment.text.match?(/\A#\s*\z/)
+          end
+
+          def check_paragraph(paragraph)
+            overlength = paragraph.find do |comment|
+              line_length(comment) > max_column
+            end
+
+            return unless overlength
+
+            add_offense(overlength, message: format(MSG, current: line_length(overlength), max: max_column))
+          end
 
           def max_column
             cop_config['MaxColumn'] || 72
