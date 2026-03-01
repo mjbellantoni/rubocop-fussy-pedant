@@ -52,8 +52,35 @@ module RuboCop
             line.strip.start_with?('#')
           end
 
-          def special_comment?(_comment)
-            false
+          ANNOTATION_KEYWORDS = %w[TODO FIXME NOTE HACK OPTIMIZE REVIEW].freeze
+
+          def special_comment?(comment)
+            text = comment.text
+            shebang?(text) ||
+              rubocop_directive?(text) ||
+              magic_comment?(text) ||
+              annotation_comment?(text)
+          end
+
+          def shebang?(text)
+            text.start_with?('#!')
+          end
+
+          def rubocop_directive?(text)
+            text.match?(/\A#\s*rubocop:\s*(?:disable|enable|todo)\b/)
+          end
+
+          def magic_comment?(text)
+            text.match?(/\A#\s*(?:frozen_string_literal|encoding|warn_indent|sharable_constant_value|typed):\s/)
+          end
+
+          def annotation_comment?(text)
+            stripped = text.sub(/\A#\s*/, '')
+            ANNOTATION_KEYWORDS.any? do |kw|
+              stripped.start_with?("#{kw}:") ||
+                stripped.start_with?("#{kw} ") ||
+                stripped == kw
+            end
           end
         end
       end

@@ -35,6 +35,58 @@ RSpec.describe RuboCop::Cop::FussyPedant::Ruby::CommentLineLength, :config do
     end
   end
 
+  context 'when comment is a rubocop directive' do
+    it 'does not register an offense' do
+      expect_no_offenses(<<~RUBY)
+        # rubocop:disable Layout/LineLength, Style/FrozenStringLiteralComment, Style/MutableConstant
+      RUBY
+    end
+  end
+
+  context 'when comment is a magic comment' do
+    it 'does not register an offense' do
+      expect_no_offenses(<<~RUBY)
+        # frozen_string_literal: true
+      RUBY
+    end
+  end
+
+  context 'when comment is a shebang' do
+    it 'does not register an offense' do
+      expect_no_offenses(<<~RUBY)
+        #!/usr/bin/env ruby -w --some-very-long-flag --another-flag
+      RUBY
+    end
+  end
+
+  context 'when comment is an annotation keyword line' do
+    it 'does not register an offense for TODO' do
+      expect_no_offenses(<<~RUBY)
+        # TODO: This is a very long todo item that exceeds the column limit by a significant margin surely.
+      RUBY
+    end
+
+    it 'does not register an offense for FIXME' do
+      expect_no_offenses(<<~RUBY)
+        # FIXME: This is a very long fixme item that exceeds the column limit by a significant margin surely.
+      RUBY
+    end
+
+    it 'does not register an offense for NOTE' do
+      expect_no_offenses(<<~RUBY)
+        # NOTE: This is a very long note that exceeds the column limit by a significant margin and should pass.
+      RUBY
+    end
+  end
+
+  context 'when comment is an inline/trailing comment' do
+    it 'does not register an offense' do
+      expect_no_offenses(<<~RUBY)
+        x = 1 # This trailing comment is very long and exceeds forty column limit for sure definitely.
+      RUBY
+    end
+  end
+
   context 'when a comment is exactly at the limit' do
     it 'does not register an offense' do
       # "# " = 2 chars + 38 chars of text = 40 total
