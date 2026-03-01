@@ -138,4 +138,55 @@ RSpec.describe RuboCop::Cop::FussyPedant::Ruby::CommentLineLength, :config do
       RUBY
     end
   end
+
+  context 'with autocorrect' do
+    context 'when a single long comment line needs wrapping' do
+      it 'wraps at the column limit' do
+        expect_offense(<<~RUBY)
+          # This comment is way too long and exceeds the limit badly.
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Comment line exceeds 40 columns. [59/40]
+        RUBY
+
+        expect_correction(<<~RUBY)
+          # This comment is way too long and
+          # exceeds the limit badly.
+        RUBY
+      end
+    end
+
+    context 'when an indented comment needs wrapping' do
+      it 'preserves indentation on wrapped lines' do
+        expect_offense(<<~RUBY)
+          def foo
+            # This indented comment is way too long and exceeds the column limit.
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Comment line exceeds 40 columns. [71/40]
+          end
+        RUBY
+
+        expect_correction(<<~RUBY)
+          def foo
+            # This indented comment is way too
+            # long and exceeds the column limit.
+          end
+        RUBY
+      end
+    end
+
+    context 'when a multi-line paragraph needs rewrapping' do
+      it 'rewraps the entire paragraph' do
+        expect_offense(<<~RUBY)
+          # This is the first line of a paragraph that is definitely way too long.
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Comment line exceeds 40 columns. [72/40]
+          # Second line is also pretty long and exceeds the limit too.
+        RUBY
+
+        expect_correction(<<~RUBY)
+          # This is the first line of a paragraph
+          # that is definitely way too long.
+          # Second line is also pretty long and
+          # exceeds the limit too.
+        RUBY
+      end
+    end
+  end
 end

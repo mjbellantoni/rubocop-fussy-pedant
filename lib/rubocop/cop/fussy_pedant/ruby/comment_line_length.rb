@@ -74,7 +74,54 @@ module RuboCop
 
             return unless overlength
 
-            add_offense(overlength, message: format(MSG, current: line_length(overlength), max: max_column))
+            add_offense(overlength, message: format(MSG, current: line_length(overlength), max: max_column)) do |corrector|
+              rewrap_paragraph(corrector, paragraph)
+            end
+          end
+
+          def rewrap_paragraph(corrector, paragraph)
+            indent = paragraph.first.source_range.column
+            available_width = max_column - indent - 2 # indent + "# "
+
+            words = extract_words(paragraph)
+            new_lines = wrap_words(words, available_width)
+
+            # source_range starts at #, not at leading whitespace
+            # First line: just "# " prefix (cursor already at column)
+            # Subsequent lines: full indent + "# "
+            rest_prefix = "#{' ' * indent}# "
+            replacement = new_lines.each_with_index.map do |line, i|
+              i.zero? ? "# #{line}" : "#{rest_prefix}#{line}"
+            end.join("\n")
+
+            range = paragraph.first.source_range.join(paragraph.last.source_range)
+            corrector.replace(range, replacement)
+          end
+
+          def extract_words(paragraph)
+            paragraph.flat_map do |comment|
+              text = comment.text.sub(/\A#\s?/, '')
+              text.split(/\s+/)
+            end.reject(&:empty?)
+          end
+
+          def wrap_words(words, available_width)
+            lines = []
+            current_line = +''
+
+            words.each do |word|
+              if current_line.empty?
+                current_line << word
+              elsif current_line.length + 1 + word.length <= available_width
+                current_line << ' ' << word
+              else
+                lines << current_line
+                current_line = +word
+              end
+            end
+
+            lines << current_line unless current_line.empty?
+            lines
           end
 
           def max_column
