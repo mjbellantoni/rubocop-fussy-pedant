@@ -26,7 +26,34 @@ module RuboCop
                 '[%<current>d/%<max>d]'
 
           def on_new_investigation
-            # TODO: implement
+            processed_source.comments.each do |comment|
+              next unless full_line_comment?(comment)
+              next if special_comment?(comment)
+
+              length = line_length(comment)
+              next if length <= max_column
+
+              add_offense(comment, message: format(MSG, current: length, max: max_column))
+            end
+          end
+
+          private
+
+          def max_column
+            cop_config['MaxColumn'] || 72
+          end
+
+          def line_length(comment)
+            comment.source_range.column + comment.source_range.source.length
+          end
+
+          def full_line_comment?(comment)
+            line = processed_source.lines[comment.location.line - 1]
+            line.strip.start_with?('#')
+          end
+
+          def special_comment?(_comment)
+            false
           end
         end
       end
