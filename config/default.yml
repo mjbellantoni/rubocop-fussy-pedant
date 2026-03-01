@@ -19,6 +19,10 @@ FussyPedant/FactoryBot/TraitsAlphabeticalOrder:
   Include:
     - 'spec/support/factories/**/*.rb'
 
+FussyPedant/Ruby/CommentLineLength:
+  Enabled: true
+  MaxColumn: 72
+
 FussyPedant/Rails/ServiceCallPattern:
   Enabled: true
   ServicesDirectory: ''
