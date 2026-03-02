@@ -282,5 +282,61 @@ RSpec.describe RuboCop::Cop::FussyPedant::Ruby::CommentLineLength, :config do
         RUBY
       end
     end
+
+    context 'when a long line is followed by list items' do
+      it 'does not merge list items into the wrapped paragraph' do
+        expect_offense(<<~RUBY)
+          # Renders a collapsible AI insights section in the thread context sidebar.
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Comment line exceeds 40 columns. [74/40]
+          # Features:
+          # - AI chat interface
+          # - Sparkles icon
+          # - Collapsible accordion section
+        RUBY
+
+        expect_correction(<<~RUBY)
+          # Renders a collapsible AI insights
+          # section in the thread context sidebar.
+          # Features:
+          # - AI chat interface
+          # - Sparkles icon
+          # - Collapsible accordion section
+        RUBY
+      end
+    end
+
+    context 'when list items themselves are too long' do
+      it 'wraps only the offending list item' do
+        expect_offense(<<~RUBY)
+          # - This list item is way too long and exceeds the column limit badly.
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Comment line exceeds 40 columns. [70/40]
+          # - Short item
+        RUBY
+
+        expect_correction(<<~RUBY)
+          # - This list item is way too long and
+          # exceeds the column limit badly.
+          # - Short item
+        RUBY
+      end
+    end
+
+    context 'when a header line ending with colon is followed by content' do
+      it 'does not merge the following line into the header' do
+        expect_offense(<<~RUBY)
+          # This is a very long description that definitely exceeds the limit.
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Comment line exceeds 40 columns. [68/40]
+          # Options:
+          # Set flag to true
+        RUBY
+
+        expect_correction(<<~RUBY)
+          # This is a very long description that
+          # definitely exceeds the limit.
+          # Options:
+          # Set flag to true
+        RUBY
+      end
+    end
   end
 end

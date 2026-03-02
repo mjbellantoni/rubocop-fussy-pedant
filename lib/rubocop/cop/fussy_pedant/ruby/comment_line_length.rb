@@ -47,13 +47,32 @@ module RuboCop
           end
 
           def same_paragraph?(prev_comment, curr_comment)
+            adjacent_comments?(prev_comment, curr_comment) &&
+              !paragraph_boundary?(prev_comment, curr_comment)
+          end
+
+          def adjacent_comments?(prev_comment, curr_comment)
             curr_comment.location.line == prev_comment.location.line + 1 &&
-              curr_comment.source_range.column == prev_comment.source_range.column &&
-              !empty_comment?(curr_comment)
+              curr_comment.source_range.column == prev_comment.source_range.column
+          end
+
+          def paragraph_boundary?(prev_comment, curr_comment)
+            empty_comment?(curr_comment) ||
+              list_item_comment?(curr_comment) ||
+              header_comment?(prev_comment) ||
+              header_comment?(curr_comment)
           end
 
           def empty_comment?(comment)
             comment.text.match?(/\A#\s*\z/)
+          end
+
+          def list_item_comment?(comment)
+            comment.text.match?(/\A#\s+[-*]\s/)
+          end
+
+          def header_comment?(comment)
+            comment.text.match?(/\A#\s+\S.*:\s*\z/)
           end
 
           def unwrappable_paragraph?(paragraph)
