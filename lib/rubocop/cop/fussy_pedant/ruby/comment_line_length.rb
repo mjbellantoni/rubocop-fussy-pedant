@@ -67,7 +67,14 @@ module RuboCop
             comment.text.match?(/\A#\s*\z/)
           end
 
+          def unwrappable_paragraph?(paragraph)
+            words = extract_words(paragraph)
+            words.length == 1
+          end
+
           def check_paragraph(paragraph)
+            return if unwrappable_paragraph?(paragraph)
+
             overlength = paragraph.find do |comment|
               line_length(comment) > max_column
             end

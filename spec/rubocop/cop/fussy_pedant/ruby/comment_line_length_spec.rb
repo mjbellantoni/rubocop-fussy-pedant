@@ -187,6 +187,52 @@ RSpec.describe RuboCop::Cop::FussyPedant::Ruby::CommentLineLength, :config do
     end
   end
 
+  context 'with edge cases' do
+    context 'when a single word exceeds the limit' do
+      it 'does not register an offense' do
+        expect_no_offenses(<<~RUBY)
+          # Pneumonoultramicroscopicsilicovolcanoconiosis
+        RUBY
+      end
+    end
+
+    context 'when comment has no space after #' do
+      it 'still detects and corrects' do
+        expect_offense(<<~RUBY)
+          #This comment has no space and is way too long to fit within the limit.
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Comment line exceeds 40 columns. [71/40]
+        RUBY
+
+        expect_correction(<<~RUBY)
+          # This comment has no space and is way
+          # too long to fit within the limit.
+        RUBY
+      end
+    end
+
+    context 'with different indentation levels breaking paragraphs' do
+      it 'treats them as separate paragraphs' do
+        expect_offense(<<~RUBY)
+          # This is a long outer comment that exceeds the column limit by a lot.
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Comment line exceeds 40 columns. [70/40]
+          def foo
+            # This indented comment is also too long and exceeds the limit here.
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Comment line exceeds 40 columns. [70/40]
+          end
+        RUBY
+      end
+    end
+
+    context 'when the file has no comments' do
+      it 'does not register an offense' do
+        expect_no_offenses(<<~RUBY)
+          x = 1
+          y = 2
+        RUBY
+      end
+    end
+  end
+
   context 'with autocorrect' do
     context 'when a single long comment line needs wrapping' do
       it 'wraps at the column limit' do
