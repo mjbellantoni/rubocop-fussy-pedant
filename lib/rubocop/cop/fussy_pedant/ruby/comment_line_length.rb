@@ -19,11 +19,13 @@ module RuboCop
         #   # good
         #   # This is a comment that has been properly wrapped to fit
         #   # within the seventy-two column limit.
-        class CommentLineLength < RuboCop::Cop::Base
+        class CommentLineLength < RuboCop::Cop::Base # rubocop:disable Metrics/ClassLength
           extend RuboCop::Cop::AutoCorrector
 
           MSG = 'Comment line exceeds %<max>d columns. ' \
                 '[%<current>d/%<max>d]'
+
+          ANNOTATION_KEYWORDS = %w[TODO FIXME NOTE HACK OPTIMIZE REVIEW].freeze
 
           def on_new_investigation
             paragraphs = group_into_paragraphs(eligible_comments)
@@ -41,20 +43,7 @@ module RuboCop
           def group_into_paragraphs(comments)
             return [] if comments.empty?
 
-            paragraphs = []
-            current_paragraph = [comments.first]
-
-            comments.each_cons(2) do |prev, curr|
-              if same_paragraph?(prev, curr)
-                current_paragraph << curr
-              else
-                paragraphs << current_paragraph
-                current_paragraph = [curr]
-              end
-            end
-
-            paragraphs << current_paragraph
-            paragraphs
+            comments.chunk_while { |prev, curr| same_paragraph?(prev, curr) }.to_a
           end
 
           def same_paragraph?(prev_comment, curr_comment)
@@ -68,67 +57,58 @@ module RuboCop
           end
 
           def unwrappable_paragraph?(paragraph)
-            words = extract_words(paragraph)
-            words.length == 1
+            extract_words(paragraph).length == 1
           end
 
           def check_paragraph(paragraph)
             return if unwrappable_paragraph?(paragraph)
 
-            overlength = paragraph.find do |comment|
-              line_length(comment) > max_column
-            end
-
+            overlength = paragraph.find { |comment| line_length(comment) > max_column }
             return unless overlength
 
-            add_offense(overlength, message: format(MSG, current: line_length(overlength), max: max_column)) do |corrector|
+            message = format(MSG, current: line_length(overlength), max: max_column)
+            add_offense(overlength, message: message) do |corrector|
               rewrap_paragraph(corrector, paragraph)
             end
           end
 
           def rewrap_paragraph(corrector, paragraph)
             indent = paragraph.first.source_range.column
-            available_width = max_column - indent - 2 # indent + "# "
-
-            words = extract_words(paragraph)
-            new_lines = wrap_words(words, available_width)
-
-            # source_range starts at #, not at leading whitespace
-            # First line: just "# " prefix (cursor already at column)
-            # Subsequent lines: full indent + "# "
-            rest_prefix = "#{' ' * indent}# "
-            replacement = new_lines.each_with_index.map do |line, i|
-              i.zero? ? "# #{line}" : "#{rest_prefix}#{line}"
-            end.join("\n")
-
+            replacement = build_replacement(paragraph, indent)
             range = paragraph.first.source_range.join(paragraph.last.source_range)
             corrector.replace(range, replacement)
           end
 
+          def build_replacement(paragraph, indent)
+            available_width = max_column - indent - 2
+            words = extract_words(paragraph)
+            new_lines = wrap_words(words, available_width)
+            format_lines(new_lines, indent)
+          end
+
+          def format_lines(lines, indent)
+            rest_prefix = "#{' ' * indent}# "
+            lines.each_with_index.map do |line, i|
+              i.zero? ? "# #{line}" : "#{rest_prefix}#{line}"
+            end.join("\n")
+          end
+
           def extract_words(paragraph)
             paragraph.flat_map do |comment|
-              text = comment.text.sub(/\A#\s?/, '')
-              text.split(/\s+/)
+              comment.text.sub(/\A#\s?/, '').split(/\s+/)
             end.reject(&:empty?)
           end
 
           def wrap_words(words, available_width)
-            lines = []
-            current_line = +''
-
-            words.each do |word|
-              if current_line.empty?
-                current_line << word
-              elsif current_line.length + 1 + word.length <= available_width
-                current_line << ' ' << word
+            words.each_with_object([+'']) do |word, lines|
+              if lines.last.empty?
+                lines.last << word
+              elsif lines.last.length + 1 + word.length <= available_width
+                lines.last << ' ' << word
               else
-                lines << current_line
-                current_line = +word
+                lines << +word
               end
             end
-
-            lines << current_line unless current_line.empty?
-            lines
           end
 
           def max_column
@@ -152,8 +132,6 @@ module RuboCop
           def url?(word)
             word.match?(%r{\Ahttps?://\S+\z})
           end
-
-          ANNOTATION_KEYWORDS = %w[TODO FIXME NOTE HACK OPTIMIZE REVIEW].freeze
 
           def special_comment?(comment)
             text = comment.text
