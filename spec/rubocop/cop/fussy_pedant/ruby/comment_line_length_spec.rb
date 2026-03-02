@@ -379,8 +379,29 @@ RSpec.describe RuboCop::Cop::FussyPedant::Ruby::CommentLineLength, :config do
 
         expect_correction(<<~RUBY)
           # - This list item is way too long and
-          # exceeds the column limit badly.
+          #   exceeds the column limit badly.
           # - Short item
+        RUBY
+      end
+    end
+
+    context 'when numbered list items follow a header' do
+      it 'does not merge numbered items into the header' do
+        expect_offense(<<~RUBY)
+          # Destroy order matters:
+          # 1. messages - destroys message_participants which reference addresses
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Comment line exceeds 40 columns. [71/40]
+          # 2. addresses - safe after gone
+          # 3. labels
+        RUBY
+
+        expect_correction(<<~RUBY)
+          # Destroy order matters:
+          # 1. messages - destroys
+          #    message_participants which
+          #    reference addresses
+          # 2. addresses - safe after gone
+          # 3. labels
         RUBY
       end
     end

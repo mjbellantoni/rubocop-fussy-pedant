@@ -71,7 +71,12 @@ module RuboCop
           end
 
           def list_item_comment?(comment)
-            comment.text.match?(/\A#\s+[-*]\s/)
+            comment.text.match?(/\A#\s+(?:[-*]\s|\d+\.\s)/)
+          end
+
+          def list_marker_width(comment)
+            match = comment.text.match(/\A#\s(?:[-*]\s|\d+\.\s)/)
+            match ? match[0].length - 2 : 0
           end
 
           def header_comment?(comment)
@@ -102,14 +107,16 @@ module RuboCop
           end
 
           def build_replacement(paragraph, indent)
-            available_width = max_column - indent - 2
+            cont_indent = list_marker_width(paragraph.first)
+            first_width = max_column - indent - 2
+            rest_width = first_width - cont_indent
             words = extract_words(paragraph)
-            new_lines = wrap_words(words, available_width)
-            format_lines(new_lines, indent)
+            new_lines = wrap_words(words, first_width, rest_width)
+            format_lines(new_lines, indent, cont_indent)
           end
 
-          def format_lines(lines, indent)
-            rest_prefix = "#{' ' * indent}# "
+          def format_lines(lines, indent, cont_indent = 0)
+            rest_prefix = "#{' ' * indent}# #{' ' * cont_indent}"
             lines.each_with_index.map do |line, i|
               i.zero? ? "# #{line}" : "#{rest_prefix}#{line}"
             end.join("\n")
@@ -121,15 +128,19 @@ module RuboCop
             end.reject(&:empty?)
           end
 
-          def wrap_words(words, available_width)
+          def wrap_words(words, first_width, rest_width = first_width)
             words.each_with_object([+'']) do |word, lines|
-              if lines.last.empty?
-                lines.last << word
-              elsif lines.last.length + 1 + word.length <= available_width
-                lines.last << ' ' << word
-              else
-                lines << +word
-              end
+              append_word(lines, word, lines.length == 1 ? first_width : rest_width)
+            end
+          end
+
+          def append_word(lines, word, width)
+            if lines.last.empty?
+              lines.last << word
+            elsif lines.last.length + 1 + word.length <= width
+              lines.last << ' ' << word
+            else
+              lines << +word
             end
           end
 
