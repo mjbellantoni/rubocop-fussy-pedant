@@ -223,6 +223,41 @@ RSpec.describe RuboCop::Cop::FussyPedant::Ruby::CommentLineLength, :config do
       end
     end
 
+    context 'when a YARD tag line exceeds the limit' do
+      it 'does not register an offense' do
+        expect_no_offenses(<<~RUBY)
+          # @param name [String] the full name of the user to be displayed in the profile
+        RUBY
+      end
+    end
+
+    context 'when indented example code exceeds the limit' do
+      it 'does not register an offense' do
+        expect_no_offenses(<<~RUBY)
+          # @example Collection usage
+          #   <%= render Inbox::CommunicationItemComponent.with_collection(@communications) %>
+        RUBY
+      end
+    end
+
+    context 'when a YARD example tag is adjacent to prose' do
+      it 'does not merge them' do
+        expect_offense(<<~RUBY)
+          # This is a very long description that definitely exceeds the limit.
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Comment line exceeds 40 columns. [68/40]
+          # @example Collection usage
+          #   <%= render Foo.bar %>
+        RUBY
+
+        expect_correction(<<~RUBY)
+          # This is a very long description that
+          # definitely exceeds the limit.
+          # @example Collection usage
+          #   <%= render Foo.bar %>
+        RUBY
+      end
+    end
+
     context 'when the file has no comments' do
       it 'does not register an offense' do
         expect_no_offenses(<<~RUBY)

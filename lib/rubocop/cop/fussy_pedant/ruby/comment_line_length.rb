@@ -36,7 +36,9 @@ module RuboCop
 
           def eligible_comments
             processed_source.comments.select do |comment|
-              full_line_comment?(comment) && !special_comment?(comment) && !url_only_comment?(comment)
+              full_line_comment?(comment) && !special_comment?(comment) &&
+                !url_only_comment?(comment) && !yard_tag_comment?(comment) &&
+                !indented_code_comment?(comment)
             end
           end
 
@@ -146,6 +148,14 @@ module RuboCop
           def url_only_comment?(comment)
             text = comment.text.sub(/\A#\s?/, '')
             url?(text)
+          end
+
+          def yard_tag_comment?(comment)
+            comment.text.match?(/\A#\s+@\w/)
+          end
+
+          def indented_code_comment?(comment)
+            comment.text.match?(/\A#\s{3,}\S/)
           end
 
           def url?(word)
