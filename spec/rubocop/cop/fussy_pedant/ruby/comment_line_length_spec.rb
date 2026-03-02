@@ -406,6 +406,23 @@ RSpec.describe RuboCop::Cop::FussyPedant::Ruby::CommentLineLength, :config do
       end
     end
 
+    context 'when a list item has existing continuation lines' do
+      it 'reflows the entire list item including continuations' do
+        expect_offense(<<~RUBY)
+          # 1. **Built-in field rendering** - Pass `form:` and `field:` to render a
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Comment line exceeds 40 columns. [73/40]
+          #    simple text input with standard styling.
+        RUBY
+
+        expect_correction(<<~RUBY)
+          # 1. **Built-in field rendering** - Pass
+          #    `form:` and `field:` to render a
+          #    simple text input with standard
+          #    styling.
+        RUBY
+      end
+    end
+
     context 'when a header line ending with colon is followed by content' do
       it 'does not merge the following line into the header' do
         expect_offense(<<~RUBY)

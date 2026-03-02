@@ -37,8 +37,7 @@ module RuboCop
           def eligible_comments
             processed_source.comments.select do |comment|
               full_line_comment?(comment) && !special_comment?(comment) &&
-                !url_only_comment?(comment) && !yard_tag_comment?(comment) &&
-                !indented_code_comment?(comment)
+                !url_only_comment?(comment) && !yard_tag_comment?(comment)
             end
           end
 
@@ -63,7 +62,27 @@ module RuboCop
               empty_comment?(curr_comment) ||
               list_item_comment?(curr_comment) ||
               header_comment?(prev_comment) ||
-              header_comment?(curr_comment)
+              header_comment?(curr_comment) ||
+              indent_boundary?(prev_comment, curr_comment)
+          end
+
+          def indent_boundary?(prev_comment, curr_comment)
+            prev_spaces = spaces_after_hash(prev_comment)
+            curr_spaces = spaces_after_hash(curr_comment)
+            return false if prev_spaces == curr_spaces
+
+            # List item followed by continuation at marker indent
+            if list_item_comment?(prev_comment)
+              expected = 1 + list_marker_width(prev_comment)
+              return false if curr_spaces == expected
+            end
+
+            true
+          end
+
+          def spaces_after_hash(comment)
+            match = comment.text.match(/\A#(\s*)\S/)
+            match ? match[1].length : 0
           end
 
           def empty_comment?(comment)
@@ -87,8 +106,14 @@ module RuboCop
             extract_words(paragraph).length == 1
           end
 
+          def code_paragraph?(paragraph)
+            !list_item_comment?(paragraph.first) &&
+              paragraph.all? { |comment| spaces_after_hash(comment) >= 3 }
+          end
+
           def check_paragraph(paragraph)
             return if unwrappable_paragraph?(paragraph)
+            return if code_paragraph?(paragraph)
 
             overlength = paragraph.find { |comment| line_length(comment) > max_column }
             return unless overlength
@@ -164,10 +189,6 @@ module RuboCop
 
           def yard_tag_comment?(comment)
             comment.text.match?(/\A#\s+@\w/)
-          end
-
-          def indented_code_comment?(comment)
-            comment.text.match?(/\A#\s{3,}\S/)
           end
 
           def url?(word)
