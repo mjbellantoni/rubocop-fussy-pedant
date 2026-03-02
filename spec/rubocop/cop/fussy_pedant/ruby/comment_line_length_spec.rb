@@ -318,6 +318,35 @@ RSpec.describe RuboCop::Cop::FussyPedant::Ruby::CommentLineLength, :config do
       end
     end
 
+    context 'when paragraphs are separated by blank comment lines during autocorrect' do
+      it 'preserves blank comment lines between paragraphs' do
+        expect_offense(<<~RUBY)
+          #
+          # A self-contained collapsible section with a three-button header pattern.
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Comment line exceeds 40 columns. [74/40]
+          # This is a LOCAL ENHANCEMENT to Rails Blocks, not part of the original library.
+          #
+          # The three-button pattern solves the invalid HTML problem of nesting buttons:
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Comment line exceeds 40 columns. [78/40]
+          #   [Header Button] [Action Button] [Chevron Button]
+        RUBY
+
+        expect_correction(<<~RUBY)
+          #
+          # A self-contained collapsible section
+          # with a three-button header pattern.
+          # This is a LOCAL ENHANCEMENT to Rails
+          # Blocks, not part of the original
+          # library.
+          #
+          # The three-button pattern solves the
+          # invalid HTML problem of nesting
+          # buttons:
+          #   [Header Button] [Action Button] [Chevron Button]
+        RUBY
+      end
+    end
+
     context 'when a long line is followed by list items' do
       it 'does not merge list items into the wrapped paragraph' do
         expect_offense(<<~RUBY)

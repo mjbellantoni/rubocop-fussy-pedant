@@ -59,7 +59,8 @@ module RuboCop
           end
 
           def paragraph_boundary?(prev_comment, curr_comment)
-            empty_comment?(curr_comment) ||
+            empty_comment?(prev_comment) ||
+              empty_comment?(curr_comment) ||
               list_item_comment?(curr_comment) ||
               header_comment?(prev_comment) ||
               header_comment?(curr_comment)
