@@ -103,4 +103,67 @@ RSpec.describe RuboCop::Cop::FussyPedant::Rails::AssociationOrder, :config do
       RUBY
     end
   end
+
+  context 'with alphabetical ordering within subtype' do
+    it 'does not register an offense when same-type associations are alphabetical' do
+      expect_no_offenses(<<~RUBY)
+        class User < ApplicationRecord
+          belongs_to :company
+          belongs_to :team
+        end
+      RUBY
+    end
+
+    it 'registers an offense when same-type associations are not alphabetical' do
+      expect_offense(<<~RUBY)
+        class User < ApplicationRecord
+          belongs_to :team
+          belongs_to :company
+          ^^^^^^^^^^^^^^^^^^^ FussyPedant/Rails/AssociationOrder: Expected `company` to come before `team` (alphabetical order within belongs_to).
+        end
+      RUBY
+    end
+
+    it 'checks alphabetical order within each subtype independently' do
+      expect_no_offenses(<<~RUBY)
+        class User < ApplicationRecord
+          belongs_to :company
+          belongs_to :team
+          has_many :comments
+          has_many :posts
+        end
+      RUBY
+    end
+
+    it 'registers an offense only in the subtype that is out of order' do
+      expect_offense(<<~RUBY)
+        class User < ApplicationRecord
+          belongs_to :company
+          belongs_to :team
+          has_many :posts
+          has_many :comments
+          ^^^^^^^^^^^^^^^^^^ FussyPedant/Rails/AssociationOrder: Expected `comments` to come before `posts` (alphabetical order within has_many).
+        end
+      RUBY
+    end
+
+    it 'does not check alphabetical order across different subtypes' do
+      expect_no_offenses(<<~RUBY)
+        class User < ApplicationRecord
+          belongs_to :zebra
+          has_many :alpha
+        end
+      RUBY
+    end
+
+    it 'checks alphabetical order for through associations separately' do
+      expect_offense(<<~RUBY)
+        class User < ApplicationRecord
+          has_many :zebras, through: :zoo
+          has_many :alphas, through: :zoo
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ FussyPedant/Rails/AssociationOrder: Expected `alphas` to come before `zebras` (alphabetical order within has_many :through).
+        end
+      RUBY
+    end
+  end
 end

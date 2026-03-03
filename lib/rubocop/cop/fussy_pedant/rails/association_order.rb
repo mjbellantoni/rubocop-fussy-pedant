@@ -47,11 +47,16 @@ module RuboCop
           MSG_TYPE_ORDER = 'Expected `%<type>s :%<name>s` to come after ' \
                            '`%<prev_type>s` associations, not before.'
 
+          MSG_ALPHABETICAL = 'Expected `%<name>s` to come before ' \
+                             '`%<other>s` (alphabetical order ' \
+                             'within %<type>s).'
+
           def on_class(node)
             associations = collect_associations(node)
             return if associations.size < 2
 
             check_type_ordering(associations)
+            check_alphabetical_ordering(associations)
           end
 
           private
@@ -124,6 +129,32 @@ module RuboCop
                    type: subtype_label(curr_assoc),
                    name: curr_assoc[:name],
                    prev_type: subtype_label(prev_assoc))
+          end
+
+          def check_alphabetical_ordering(associations)
+            associations.chunk { |a| a[:rank] }.each do |_rank, group|
+              next if group.size < 2
+
+              check_group_alphabetical(group)
+            end
+          end
+
+          def check_group_alphabetical(group)
+            group.each_cons(2) do |prev_assoc, curr_assoc|
+              next if prev_assoc[:name].to_s <= curr_assoc[:name].to_s
+
+              add_offense(
+                curr_assoc[:node],
+                message: alphabetical_message(curr_assoc, prev_assoc)
+              )
+            end
+          end
+
+          def alphabetical_message(curr_assoc, prev_assoc)
+            format(MSG_ALPHABETICAL,
+                   name: curr_assoc[:name],
+                   other: prev_assoc[:name],
+                   type: subtype_label(curr_assoc))
           end
         end
       end
