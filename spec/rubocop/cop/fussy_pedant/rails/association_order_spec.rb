@@ -320,6 +320,63 @@ RSpec.describe RuboCop::Cop::FussyPedant::Rails::AssociationOrder, :config do
     end
   end
 
+  context 'with edge cases' do
+    it 'handles associations with lambda scopes' do
+      expect_no_offenses(<<~RUBY)
+        class User < ApplicationRecord
+          has_many :active_posts, -> { where(active: true) }, class_name: 'Post'
+          has_many :draft_posts, -> { where(draft: true) }, class_name: 'Post'
+        end
+      RUBY
+    end
+
+    it 'handles multiple classes in one file independently' do
+      expect_offense(<<~RUBY)
+        class User < ApplicationRecord
+          belongs_to :company
+          has_many :posts
+        end
+
+        class Post < ApplicationRecord
+          has_many :comments
+          belongs_to :user
+          ^^^^^^^^^^^^^^^^ FussyPedant/Rails/AssociationOrder: Expected `belongs_to :user` to come after `has_many` associations, not before.
+        end
+      RUBY
+    end
+
+    it 'handles has_and_belongs_to_many at the end' do
+      expect_no_offenses(<<~RUBY)
+        class Post < ApplicationRecord
+          belongs_to :author
+
+          has_many :comments
+
+          has_and_belongs_to_many :tags
+        end
+      RUBY
+    end
+
+    it 'flags has_and_belongs_to_many before has_many' do
+      expect_offense(<<~RUBY)
+        class Post < ApplicationRecord
+          has_and_belongs_to_many :tags
+          has_many :comments
+          ^^^^^^^^^^^^^^^^^^ FussyPedant/Rails/AssociationOrder: Expected `has_many :comments` to come after `has_and_belongs_to_many` associations, not before.
+        end
+      RUBY
+    end
+
+    it 'handles through with other options' do
+      expect_no_offenses(<<~RUBY)
+        class User < ApplicationRecord
+          has_many :posts
+          has_many :comments, through: :posts, source: :remarks
+        end
+      RUBY
+    end
+  end
+
   context 'with autocorrect' do
     it 'reorders associations by type' do
       expect_offense(<<~RUBY)
