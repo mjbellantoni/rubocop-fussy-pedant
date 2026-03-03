@@ -260,4 +260,63 @@ RSpec.describe RuboCop::Cop::FussyPedant::Rails::AssociationOrder, :config do
       end
     end
   end
+
+  context 'with configuration' do
+    context 'when CheckAlphabetical is false' do
+      before do
+        allow(cop).to receive(:cop_config).and_return(
+          'CheckAlphabetical' => false,
+          'CheckSpacing' => true
+        )
+      end
+
+      it 'does not check alphabetical ordering' do
+        expect_no_offenses(<<~RUBY)
+          class User < ApplicationRecord
+            belongs_to :team
+            belongs_to :company
+          end
+        RUBY
+      end
+
+      it 'still checks type ordering' do
+        expect_offense(<<~RUBY)
+          class User < ApplicationRecord
+            has_many :posts
+            belongs_to :company
+            ^^^^^^^^^^^^^^^^^^^ FussyPedant/Rails/AssociationOrder: Expected `belongs_to :company` to come after `has_many` associations, not before.
+          end
+        RUBY
+      end
+    end
+
+    context 'when CheckSpacing is false' do
+      before do
+        allow(cop).to receive(:cop_config).and_return(
+          'CheckAlphabetical' => true,
+          'CheckSpacing' => false
+        )
+      end
+
+      it 'does not check spacing' do
+        expect_no_offenses(<<~RUBY)
+          class User < ApplicationRecord
+            belongs_to :company
+
+            has_many :posts
+          end
+        RUBY
+      end
+
+      it 'still checks type ordering' do
+        expect_offense(<<~RUBY)
+          class User < ApplicationRecord
+            has_many :posts
+            belongs_to :company
+            ^^^^^^^^^^^^^^^^^^^ FussyPedant/Rails/AssociationOrder: Expected `belongs_to :company` to come after `has_many` associations, not before.
+          end
+        RUBY
+      end
+    end
+  end
 end

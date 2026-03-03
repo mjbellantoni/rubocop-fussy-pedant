@@ -62,11 +62,19 @@ module RuboCop
             return if associations.size < 2
 
             check_type_ordering(associations)
-            check_alphabetical_ordering(associations)
-            check_spacing(associations)
+            check_alphabetical_ordering(associations) if check_alphabetical?
+            check_spacing(associations) if check_spacing?
           end
 
           private
+
+          def check_alphabetical?
+            cop_config.fetch('CheckAlphabetical', true)
+          end
+
+          def check_spacing?
+            cop_config.fetch('CheckSpacing', true)
+          end
 
           def collect_associations(class_node)
             associations = []
