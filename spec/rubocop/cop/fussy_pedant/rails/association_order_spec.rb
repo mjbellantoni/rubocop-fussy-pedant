@@ -45,8 +45,11 @@ RSpec.describe RuboCop::Cop::FussyPedant::Rails::AssociationOrder, :config do
       expect_no_offenses(<<~RUBY)
         class Post < ApplicationRecord
           belongs_to :author
+
           has_one :metadata
+
           has_many :comments
+
           has_and_belongs_to_many :tags
         end
       RUBY
@@ -66,8 +69,11 @@ RSpec.describe RuboCop::Cop::FussyPedant::Rails::AssociationOrder, :config do
       expect_no_offenses(<<~RUBY)
         class User < ApplicationRecord
           has_one :profile
+
           has_one :avatar, through: :profile
+
           has_many :posts
+
           has_many :comments, through: :posts
         end
       RUBY
@@ -129,6 +135,7 @@ RSpec.describe RuboCop::Cop::FussyPedant::Rails::AssociationOrder, :config do
         class User < ApplicationRecord
           belongs_to :company
           belongs_to :team
+
           has_many :comments
           has_many :posts
         end
@@ -140,6 +147,7 @@ RSpec.describe RuboCop::Cop::FussyPedant::Rails::AssociationOrder, :config do
         class User < ApplicationRecord
           belongs_to :company
           belongs_to :team
+
           has_many :posts
           has_many :comments
           ^^^^^^^^^^^^^^^^^^ FussyPedant/Rails/AssociationOrder: Expected `comments` to come before `posts` (alphabetical order within has_many).
@@ -164,6 +172,92 @@ RSpec.describe RuboCop::Cop::FussyPedant::Rails::AssociationOrder, :config do
           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ FussyPedant/Rails/AssociationOrder: Expected `alphas` to come before `zebras` (alphabetical order within has_many :through).
         end
       RUBY
+    end
+  end
+
+  context 'with spacing between subtypes' do
+    context 'with fewer than 3 associations' do
+      it 'does not register an offense when there are no blank lines' do
+        expect_no_offenses(<<~RUBY)
+          class User < ApplicationRecord
+            belongs_to :company
+            has_many :posts
+          end
+        RUBY
+      end
+
+      it 'registers an offense when there is a blank line' do
+        expect_offense(<<~RUBY)
+          class User < ApplicationRecord
+            belongs_to :company
+
+            has_many :posts
+            ^^^^^^^^^^^^^^^ FussyPedant/Rails/AssociationOrder: Remove blank line between associations (only 2 total).
+          end
+        RUBY
+      end
+    end
+
+    context 'with 3 or more associations' do
+      it 'does not register an offense when different subtypes are separated by blank lines' do
+        expect_no_offenses(<<~RUBY)
+          class User < ApplicationRecord
+            belongs_to :company
+            belongs_to :team
+
+            has_many :comments
+            has_many :posts
+          end
+        RUBY
+      end
+
+      it 'registers an offense when different subtypes lack blank lines' do
+        expect_offense(<<~RUBY)
+          class User < ApplicationRecord
+            belongs_to :company
+            belongs_to :team
+            has_many :posts
+            ^^^^^^^^^^^^^^^ FussyPedant/Rails/AssociationOrder: Add a blank line between `belongs_to` and `has_many` associations.
+          end
+        RUBY
+      end
+
+      it 'does not require blank lines between same subtype' do
+        expect_no_offenses(<<~RUBY)
+          class Post < ApplicationRecord
+            belongs_to :author
+            belongs_to :category
+            belongs_to :editor
+          end
+        RUBY
+      end
+
+      it 'handles multiple subtype transitions' do
+        expect_no_offenses(<<~RUBY)
+          class User < ApplicationRecord
+            belongs_to :company
+
+            has_one :profile
+
+            has_many :comments
+            has_many :posts
+
+            has_many :drafts, through: :posts
+          end
+        RUBY
+      end
+
+      it 'registers offenses for multiple missing blank lines' do
+        expect_offense(<<~RUBY)
+          class User < ApplicationRecord
+            belongs_to :company
+            has_one :profile
+            ^^^^^^^^^^^^^^^^ FussyPedant/Rails/AssociationOrder: Add a blank line between `belongs_to` and `has_one` associations.
+            has_many :posts
+            ^^^^^^^^^^^^^^^ FussyPedant/Rails/AssociationOrder: Add a blank line between `has_one` and `has_many` associations.
+          end
+        RUBY
+      end
     end
   end
 end

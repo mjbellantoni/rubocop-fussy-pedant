@@ -19,6 +19,10 @@ Naming/FileName:
 Gemspec/DevelopmentDependencies:
   Enabled: false
 
+Metrics/ClassLength:
+  Exclude:
+    - 'lib/rubocop/cop/**/*'
+
 RSpec/ExampleLength:
   Exclude:
     - 'spec/**/*'

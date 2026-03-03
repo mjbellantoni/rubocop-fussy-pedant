@@ -47,7 +47,7 @@ module RuboCop
         #       # ...
         #     end
         #   end
-        class ServiceCallPattern < RuboCop::Cop::Base # rubocop:disable Metrics/ClassLength
+        class ServiceCallPattern < RuboCop::Cop::Base
           MSG_MISSING_CALL = 'Service objects must implement `def self.call(...)`'
           MSG_WRONG_ORDER = 'Service methods must be ordered: self.call, initialize, call, private'
           MSG_CUSTOM_CLASS_METHOD = 'Service objects should only expose .call class method, found: %<method>s'

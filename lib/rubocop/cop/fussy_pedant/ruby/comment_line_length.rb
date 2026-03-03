@@ -19,7 +19,7 @@ module RuboCop
         #   # good
         #   # This is a comment that has been properly wrapped to fit
         #   # within the seventy-two column limit.
-        class CommentLineLength < RuboCop::Cop::Base # rubocop:disable Metrics/ClassLength
+        class CommentLineLength < RuboCop::Cop::Base
           extend RuboCop::Cop::AutoCorrector
 
           MSG = 'Comment line exceeds %<max>d columns. ' \

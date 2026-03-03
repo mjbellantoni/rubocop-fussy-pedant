@@ -51,12 +51,19 @@ module RuboCop
                              '`%<other>s` (alphabetical order ' \
                              'within %<type>s).'
 
+          MSG_MISSING_BLANK_LINE = 'Add a blank line between ' \
+                                   '`%<prev_type>s` and `%<next_type>s` ' \
+                                   'associations.'
+          MSG_EXTRA_BLANK_LINE = 'Remove blank line between associations ' \
+                                 '(only %<count>s total).'
+
           def on_class(node)
             associations = collect_associations(node)
             return if associations.size < 2
 
             check_type_ordering(associations)
             check_alphabetical_ordering(associations)
+            check_spacing(associations)
           end
 
           private
@@ -155,6 +162,53 @@ module RuboCop
                    name: curr_assoc[:name],
                    other: prev_assoc[:name],
                    type: subtype_label(curr_assoc))
+          end
+
+          def check_spacing(associations)
+            if associations.size < 3
+              check_no_blank_lines(associations)
+            else
+              check_subtype_blank_lines(associations)
+            end
+          end
+
+          def check_no_blank_lines(associations)
+            associations.each_cons(2) do |prev_assoc, curr_assoc|
+              next unless blank_line_between?(prev_assoc[:node], curr_assoc[:node])
+
+              add_offense(
+                curr_assoc[:node],
+                message: format(MSG_EXTRA_BLANK_LINE, count: associations.size)
+              )
+            end
+          end
+
+          def check_subtype_blank_lines(associations)
+            associations.each_cons(2) do |prev_assoc, curr_assoc|
+              next if prev_assoc[:rank] == curr_assoc[:rank]
+              next if blank_line_between?(prev_assoc[:node], curr_assoc[:node])
+
+              add_offense(
+                curr_assoc[:node],
+                message: missing_blank_line_message(prev_assoc, curr_assoc)
+              )
+            end
+          end
+
+          def missing_blank_line_message(prev_assoc, curr_assoc)
+            format(MSG_MISSING_BLANK_LINE,
+                   prev_type: subtype_label(prev_assoc),
+                   next_type: subtype_label(curr_assoc))
+          end
+
+          def blank_line_between?(node1, node2)
+            lines = processed_source.lines
+            after_first = node1.source_range.last_line
+            before_second = node2.source_range.line - 2
+
+            (after_first..before_second).any? do |index|
+              lines[index].nil? || lines[index].strip.empty?
+            end
           end
         end
       end
