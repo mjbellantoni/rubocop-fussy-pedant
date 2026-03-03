@@ -23,6 +23,13 @@ FussyPedant/Ruby/CommentLineLength:
   Enabled: true
   MaxColumn: 72
 
+FussyPedant/Rails/AssociationOrder:
+  Enabled: true
+  CheckAlphabetical: true
+  CheckSpacing: true
+  Include:
+    - 'app/models/**/*.rb'
+
 FussyPedant/Rails/ServiceCallPattern:
   Enabled: true
   ServicesDirectory: ''
