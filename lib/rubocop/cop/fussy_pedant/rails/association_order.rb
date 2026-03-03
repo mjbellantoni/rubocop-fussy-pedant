@@ -135,7 +135,9 @@ module RuboCop
               next if curr_assoc[:rank] >= prev_assoc[:rank]
 
               add_offense(curr_assoc[:node],
-                          message: type_order_message(curr_assoc, prev_assoc))
+                          message: type_order_message(curr_assoc, prev_assoc)) do |corrector|
+                autocorrect_associations(corrector, associations)
+              end
             end
           end
 
@@ -150,18 +152,20 @@ module RuboCop
             associations.chunk { |a| a[:rank] }.each do |_rank, group|
               next if group.size < 2
 
-              check_group_alphabetical(group)
+              check_group_alphabetical(group, associations)
             end
           end
 
-          def check_group_alphabetical(group)
+          def check_group_alphabetical(group, associations)
             group.each_cons(2) do |prev_assoc, curr_assoc|
               next if prev_assoc[:name].to_s <= curr_assoc[:name].to_s
 
               add_offense(
                 curr_assoc[:node],
                 message: alphabetical_message(curr_assoc, prev_assoc)
-              )
+              ) do |corrector|
+                autocorrect_associations(corrector, associations)
+              end
             end
           end
 
@@ -187,7 +191,9 @@ module RuboCop
               add_offense(
                 curr_assoc[:node],
                 message: format(MSG_EXTRA_BLANK_LINE, count: associations.size)
-              )
+              ) do |corrector|
+                autocorrect_associations(corrector, associations)
+              end
             end
           end
 
@@ -199,7 +205,9 @@ module RuboCop
               add_offense(
                 curr_assoc[:node],
                 message: missing_blank_line_message(prev_assoc, curr_assoc)
-              )
+              ) do |corrector|
+                autocorrect_associations(corrector, associations)
+              end
             end
           end
 
@@ -207,6 +215,32 @@ module RuboCop
             format(MSG_MISSING_BLANK_LINE,
                    prev_type: subtype_label(prev_assoc),
                    next_type: subtype_label(curr_assoc))
+          end
+
+          def autocorrect_associations(corrector, associations)
+            sorted = associations.sort_by { |a| [a[:rank], a[:name].to_s] }
+            range = association_range(associations)
+            indent = ' ' * range.column
+            corrector.replace(range, build_replacement(sorted, indent))
+          end
+
+          def association_range(associations)
+            first_node = associations.first[:node]
+            last_node = associations.last[:node]
+            first_node.source_range.join(last_node.source_range)
+          end
+
+          def build_replacement(sorted_associations, indent)
+            lines = []
+            sorted_associations.each_with_index do |assoc, i|
+              if i.positive? && sorted_associations.size >= 3 &&
+                 assoc[:rank] != sorted_associations[i - 1][:rank]
+                lines << ''
+              end
+              source = assoc[:node].source
+              lines << (i.zero? ? source : "#{indent}#{source}")
+            end
+            lines.join("\n")
           end
 
           def blank_line_between?(node1, node2)

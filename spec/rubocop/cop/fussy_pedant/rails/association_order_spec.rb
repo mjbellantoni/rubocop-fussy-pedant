@@ -319,4 +319,103 @@ RSpec.describe RuboCop::Cop::FussyPedant::Rails::AssociationOrder, :config do
       end
     end
   end
+
+  context 'with autocorrect' do
+    it 'reorders associations by type' do
+      expect_offense(<<~RUBY)
+        class User < ApplicationRecord
+          has_many :posts
+          belongs_to :company
+          ^^^^^^^^^^^^^^^^^^^ FussyPedant/Rails/AssociationOrder: Expected `belongs_to :company` to come after `has_many` associations, not before.
+        end
+      RUBY
+
+      expect_correction(<<~RUBY)
+        class User < ApplicationRecord
+          belongs_to :company
+          has_many :posts
+        end
+      RUBY
+    end
+
+    it 'reorders associations alphabetically within subtype' do
+      expect_offense(<<~RUBY)
+        class User < ApplicationRecord
+          belongs_to :team
+          belongs_to :company
+          ^^^^^^^^^^^^^^^^^^^ FussyPedant/Rails/AssociationOrder: Expected `company` to come before `team` (alphabetical order within belongs_to).
+        end
+      RUBY
+
+      expect_correction(<<~RUBY)
+        class User < ApplicationRecord
+          belongs_to :company
+          belongs_to :team
+        end
+      RUBY
+    end
+
+    it 'adds blank lines between subtypes when 3+ total' do
+      expect_offense(<<~RUBY)
+        class User < ApplicationRecord
+          belongs_to :company
+          belongs_to :team
+          has_many :posts
+          ^^^^^^^^^^^^^^^ FussyPedant/Rails/AssociationOrder: Add a blank line between `belongs_to` and `has_many` associations.
+        end
+      RUBY
+
+      expect_correction(<<~RUBY)
+        class User < ApplicationRecord
+          belongs_to :company
+          belongs_to :team
+
+          has_many :posts
+        end
+      RUBY
+    end
+
+    it 'removes blank lines when fewer than 3 total' do
+      expect_offense(<<~RUBY)
+        class User < ApplicationRecord
+          belongs_to :company
+
+          has_many :posts
+          ^^^^^^^^^^^^^^^ FussyPedant/Rails/AssociationOrder: Remove blank line between associations (only 2 total).
+        end
+      RUBY
+
+      expect_correction(<<~RUBY)
+        class User < ApplicationRecord
+          belongs_to :company
+          has_many :posts
+        end
+      RUBY
+    end
+
+    it 'sorts and spaces a complex set of associations' do
+      expect_offense(<<~RUBY)
+        class User < ApplicationRecord
+          has_many :posts
+          belongs_to :team
+          ^^^^^^^^^^^^^^^^ FussyPedant/Rails/AssociationOrder: Expected `belongs_to :team` to come after `has_many` associations, not before.
+          belongs_to :company
+          ^^^^^^^^^^^^^^^^^^^ FussyPedant/Rails/AssociationOrder: Expected `company` to come before `team` (alphabetical order within belongs_to).
+          has_one :profile
+          ^^^^^^^^^^^^^^^^ FussyPedant/Rails/AssociationOrder: Add a blank line between `belongs_to` and `has_one` associations.
+        end
+      RUBY
+
+      expect_correction(<<~RUBY)
+        class User < ApplicationRecord
+          belongs_to :company
+          belongs_to :team
+
+          has_one :profile
+
+          has_many :posts
+        end
+      RUBY
+    end
+  end
 end
