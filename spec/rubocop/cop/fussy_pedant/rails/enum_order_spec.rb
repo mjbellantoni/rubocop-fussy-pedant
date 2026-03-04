@@ -197,4 +197,128 @@ RSpec.describe RuboCop::Cop::FussyPedant::Rails::EnumOrder, :config do
       RUBY
     end
   end
+
+  context 'with autocorrect' do
+    it 'sorts and reformats hash enum values' do
+      expect_offense(<<~RUBY)
+        class User < ApplicationRecord
+          enum :status, { draft: 0, published: 1, archived: 2 }
+                                                  ^^^^^^^^^^^ FussyPedant/Rails/EnumOrder: Enum values should be in alphabetical order. Expected `archived` before `published`.
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ FussyPedant/Rails/EnumOrder: Each enum value should be on its own line.
+        end
+      RUBY
+
+      expect_correction(<<~RUBY)
+        class User < ApplicationRecord
+          enum :status, {
+            archived: 2,
+            draft: 0,
+            published: 1
+          }
+        end
+      RUBY
+    end
+
+    it 'sorts and reformats array enum values' do
+      expect_offense(<<~RUBY)
+        class User < ApplicationRecord
+          enum :status, [:draft, :published, :archived]
+                                             ^^^^^^^^^ FussyPedant/Rails/EnumOrder: Enum values should be in alphabetical order. Expected `archived` before `published`.
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ FussyPedant/Rails/EnumOrder: Each enum value should be on its own line.
+        end
+      RUBY
+
+      expect_correction(<<~RUBY)
+        class User < ApplicationRecord
+          enum :status, [
+            :archived,
+            :draft,
+            :published
+          ]
+        end
+      RUBY
+    end
+
+    it 'sorts and reformats %i enum values' do
+      expect_offense(<<~RUBY)
+        class User < ApplicationRecord
+          enum :status, %i[draft published archived]
+                                           ^^^^^^^^ FussyPedant/Rails/EnumOrder: Enum values should be in alphabetical order. Expected `archived` before `published`.
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ FussyPedant/Rails/EnumOrder: Each enum value should be on its own line.
+        end
+      RUBY
+
+      expect_correction(<<~RUBY)
+        class User < ApplicationRecord
+          enum :status, %i[
+            archived
+            draft
+            published
+          ]
+        end
+      RUBY
+    end
+
+    it 'sorts already-multiline hash values' do
+      expect_offense(<<~RUBY)
+        class User < ApplicationRecord
+          enum :status, {
+            draft: 0,
+            published: 1,
+            archived: 2
+            ^^^^^^^^^^^ FussyPedant/Rails/EnumOrder: Enum values should be in alphabetical order. Expected `archived` before `published`.
+          }
+        end
+      RUBY
+
+      expect_correction(<<~RUBY)
+        class User < ApplicationRecord
+          enum :status, {
+            archived: 2,
+            draft: 0,
+            published: 1
+          }
+        end
+      RUBY
+    end
+
+    it 'preserves options after values' do
+      expect_offense(<<~RUBY)
+        class User < ApplicationRecord
+          enum :status, { draft: 0, archived: 1 }, prefix: true
+                                    ^^^^^^^^^^^ FussyPedant/Rails/EnumOrder: Enum values should be in alphabetical order. Expected `archived` before `draft`.
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^ FussyPedant/Rails/EnumOrder: Each enum value should be on its own line.
+        end
+      RUBY
+
+      expect_correction(<<~RUBY)
+        class User < ApplicationRecord
+          enum :status, {
+            archived: 1,
+            draft: 0
+          }, prefix: true
+        end
+      RUBY
+    end
+
+    it 'sorts and reformats %w enum values' do
+      expect_offense(<<~RUBY)
+        class User < ApplicationRecord
+          enum :status, %w[draft published archived]
+                                           ^^^^^^^^ FussyPedant/Rails/EnumOrder: Enum values should be in alphabetical order. Expected `archived` before `published`.
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ FussyPedant/Rails/EnumOrder: Each enum value should be on its own line.
+        end
+      RUBY
+
+      expect_correction(<<~RUBY)
+        class User < ApplicationRecord
+          enum :status, %w[
+            archived
+            draft
+            published
+          ]
+        end
+      RUBY
+    end
+  end
 end

@@ -60,7 +60,9 @@ module RuboCop
           def check_one_per_line(values_node)
             return if values_on_separate_lines?(values_node)
 
-            add_offense(values_node, message: MSG_ONE_PER_LINE)
+            add_offense(values_node, message: MSG_ONE_PER_LINE) do |corrector|
+              autocorrect_enum(corrector, values_node)
+            end
           end
 
           def values_on_separate_lines?(values_node)
@@ -86,17 +88,19 @@ module RuboCop
             keys.each_cons(2) do |prev_key, curr_key|
               next if prev_key[:name].to_s <= curr_key[:name].to_s
 
-              add_alphabetical_offense(prev_key, curr_key)
+              add_alphabetical_offense(prev_key, curr_key, values_node)
             end
           end
 
-          def add_alphabetical_offense(prev_key, curr_key)
+          def add_alphabetical_offense(prev_key, curr_key, values_node)
             add_offense(
               curr_key[:node],
               message: format(MSG_ALPHABETICAL,
                               expected: curr_key[:name],
                               current: prev_key[:name])
-            )
+            ) do |corrector|
+              autocorrect_enum(corrector, values_node)
+            end
           end
 
           def extract_keys(values_node)
@@ -119,6 +123,57 @@ module RuboCop
             node.method?(:enum) &&
               node.receiver.nil? &&
               node.first_argument&.sym_type?
+          end
+
+          def autocorrect_enum(corrector, values_node)
+            indent = ' ' * values_node.parent.source_range.column
+            value_indent = "#{indent}  "
+            replacement = build_enum_replacement(values_node, indent, value_indent)
+            corrector.replace(values_node, replacement)
+          end
+
+          def build_enum_replacement(values_node, indent, value_indent)
+            case values_node.type
+            when :hash
+              build_hash_replacement(values_node, indent, value_indent)
+            when :array
+              build_array_replacement(values_node, indent, value_indent)
+            end
+          end
+
+          def build_hash_replacement(values_node, indent, value_indent)
+            sorted_pairs = values_node.pairs.sort_by { |pair| pair.key.value.to_s }
+            lines = sorted_pairs.map { |pair| "#{value_indent}#{pair.source}" }
+            lines.last.sub!(/,\s*\z/, '')
+            lines[0...-1].each { |line| line << ',' unless line.end_with?(',') }
+            "{\n#{lines.join("\n")}\n#{indent}}"
+          end
+
+          def build_array_replacement(values_node, indent, value_indent)
+            sorted_values = values_node.values.sort_by { |val| val.value.to_s }
+
+            if percent_literal?(values_node)
+              build_percent_replacement(values_node, sorted_values, indent, value_indent)
+            else
+              build_bracket_array_replacement(sorted_values, indent, value_indent)
+            end
+          end
+
+          def build_percent_replacement(values_node, sorted_values, indent, value_indent)
+            opener = values_node.source[/\A%[iIwW]\[/]
+            lines = sorted_values.map { |val| "#{value_indent}#{val.value}" }
+            "#{opener}\n#{lines.join("\n")}\n#{indent}]"
+          end
+
+          def build_bracket_array_replacement(sorted_values, indent, value_indent)
+            lines = sorted_values.map { |val| "#{value_indent}#{val.source}" }
+            lines.last.sub!(/,\s*\z/, '')
+            lines[0...-1].each { |line| line << ',' unless line.end_with?(',') }
+            "[\n#{lines.join("\n")}\n#{indent}]"
+          end
+
+          def percent_literal?(node)
+            node.source.start_with?('%')
           end
         end
       end
