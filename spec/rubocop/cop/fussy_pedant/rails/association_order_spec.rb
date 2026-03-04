@@ -375,6 +375,35 @@ RSpec.describe RuboCop::Cop::FussyPedant::Rails::AssociationOrder, :config do
         end
       RUBY
     end
+
+    it 'detects associations with blocks' do
+      expect_offense(<<~RUBY)
+        class User < ApplicationRecord
+          has_many :posts do
+            def active
+              where(active: true)
+            end
+          end
+          belongs_to :company
+          ^^^^^^^^^^^^^^^^^^^ FussyPedant/Rails/AssociationOrder: Expected `belongs_to :company` to come after `has_many` associations, not before.
+        end
+      RUBY
+    end
+
+    it 'counts associations with blocks toward spacing threshold' do
+      expect_offense(<<~RUBY)
+        class User < ApplicationRecord
+          belongs_to :company
+          belongs_to :team
+          has_many :posts do
+          ^^^^^^^^^^^^^^^ FussyPedant/Rails/AssociationOrder: Add a blank line between `belongs_to` and `has_many` associations.
+            def active
+              where(active: true)
+            end
+          end
+        end
+      RUBY
+    end
   end
 
   context 'with autocorrect' do

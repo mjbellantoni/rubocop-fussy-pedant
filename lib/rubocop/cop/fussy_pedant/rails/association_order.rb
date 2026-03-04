@@ -79,21 +79,31 @@ module RuboCop
           def collect_associations(class_node)
             associations = []
             class_node.body&.each_child_node do |child|
-              next unless child.send_type?
-              next unless ASSOCIATION_METHODS.include?(child.method_name)
+              send_node = association_send(child)
+              next unless send_node
 
-              associations << build_association(child)
+              associations << build_association(send_node, child)
             end
             associations
           end
 
-          def build_association(node)
+          def association_send(node)
+            case node.type
+            when :send
+              node if ASSOCIATION_METHODS.include?(node.method_name)
+            when :block, :numblock
+              node.send_node if ASSOCIATION_METHODS.include?(node.send_node.method_name)
+            end
+          end
+
+          def build_association(send_node, outer_node)
             {
-              node: node,
-              method_name: node.method_name,
-              name: association_name(node),
-              through: through_association?(node),
-              rank: compute_rank(node)
+              node: outer_node,
+              send_node: send_node,
+              method_name: send_node.method_name,
+              name: association_name(send_node),
+              through: through_association?(send_node),
+              rank: compute_rank(send_node)
             }
           end
 
@@ -134,7 +144,7 @@ module RuboCop
             associations.each_cons(2) do |prev_assoc, curr_assoc|
               next if curr_assoc[:rank] >= prev_assoc[:rank]
 
-              add_offense(curr_assoc[:node],
+              add_offense(curr_assoc[:send_node],
                           message: type_order_message(curr_assoc, prev_assoc)) do |corrector|
                 autocorrect_associations(corrector, associations)
               end
@@ -161,7 +171,7 @@ module RuboCop
               next if prev_assoc[:name].to_s <= curr_assoc[:name].to_s
 
               add_offense(
-                curr_assoc[:node],
+                curr_assoc[:send_node],
                 message: alphabetical_message(curr_assoc, prev_assoc)
               ) do |corrector|
                 autocorrect_associations(corrector, associations)
@@ -189,7 +199,7 @@ module RuboCop
               next unless blank_line_between?(prev_assoc[:node], curr_assoc[:node])
 
               add_offense(
-                curr_assoc[:node],
+                curr_assoc[:send_node],
                 message: format(MSG_EXTRA_BLANK_LINE, count: associations.size)
               ) do |corrector|
                 autocorrect_associations(corrector, associations)
@@ -203,7 +213,7 @@ module RuboCop
               next if blank_line_between?(prev_assoc[:node], curr_assoc[:node])
 
               add_offense(
-                curr_assoc[:node],
+                curr_assoc[:send_node],
                 message: missing_blank_line_message(prev_assoc, curr_assoc)
               ) do |corrector|
                 autocorrect_associations(corrector, associations)
