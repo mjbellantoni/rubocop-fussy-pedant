@@ -35,6 +35,7 @@ module RuboCop
 
           MSG_ALPHABETICAL = 'Enum values should be in alphabetical order. ' \
                              'Expected `%<expected>s` before `%<current>s`.'
+          MSG_ONE_PER_LINE = 'Each enum value should be on its own line.'
 
           def on_send(node)
             return unless enum_new_syntax?(node)
@@ -43,12 +44,39 @@ module RuboCop
             return unless values_node
 
             check_alphabetical(values_node) if check_alphabetical?
+            check_one_per_line(values_node) if check_one_per_line?
           end
 
           private
 
           def check_alphabetical?
             cop_config.fetch('CheckAlphabetical', true)
+          end
+
+          def check_one_per_line?
+            cop_config.fetch('CheckOnePerLine', true)
+          end
+
+          def check_one_per_line(values_node)
+            return if values_on_separate_lines?(values_node)
+
+            add_offense(values_node, message: MSG_ONE_PER_LINE)
+          end
+
+          def values_on_separate_lines?(values_node)
+            children = enum_children(values_node)
+            return true if children.size < 2
+
+            lines = children.map { |child| child.source_range.line }
+            lines.uniq.size == lines.size
+          end
+
+          def enum_children(values_node)
+            case values_node.type
+            when :hash then values_node.pairs
+            when :array then values_node.values
+            else []
+            end
           end
 
           def check_alphabetical(values_node)

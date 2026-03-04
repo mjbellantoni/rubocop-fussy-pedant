@@ -134,4 +134,67 @@ RSpec.describe RuboCop::Cop::FussyPedant::Rails::EnumOrder, :config do
       end
     end
   end
+
+  context 'with one-per-line formatting' do
+    it 'does not register an offense when values are one per line' do
+      expect_no_offenses(<<~RUBY)
+        class User < ApplicationRecord
+          enum :status, {
+            archived: 0,
+            draft: 1,
+            published: 2
+          }
+        end
+      RUBY
+    end
+
+    it 'registers an offense when hash values are on one line' do
+      expect_offense(<<~RUBY)
+        class User < ApplicationRecord
+          enum :status, { archived: 0, draft: 1, published: 2 }
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ FussyPedant/Rails/EnumOrder: Each enum value should be on its own line.
+        end
+      RUBY
+    end
+
+    it 'registers an offense when array values are on one line' do
+      expect_offense(<<~RUBY)
+        class User < ApplicationRecord
+          enum :status, [:archived, :draft, :published]
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ FussyPedant/Rails/EnumOrder: Each enum value should be on its own line.
+        end
+      RUBY
+    end
+
+    it 'registers an offense when %i values are on one line' do
+      expect_offense(<<~RUBY)
+        class User < ApplicationRecord
+          enum :status, %i[archived draft published]
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ FussyPedant/Rails/EnumOrder: Each enum value should be on its own line.
+        end
+      RUBY
+    end
+
+    it 'registers an offense when some values share a line' do
+      expect_offense(<<~RUBY)
+        class User < ApplicationRecord
+          enum :status, {
+                        ^ FussyPedant/Rails/EnumOrder: Each enum value should be on its own line.
+            archived: 0, draft: 1,
+            published: 2
+          }
+        end
+      RUBY
+    end
+
+    it 'does not register an offense for a single value on one line' do
+      expect_no_offenses(<<~RUBY)
+        class User < ApplicationRecord
+          enum :status, {
+            active: 0
+          }
+        end
+      RUBY
+    end
+  end
 end
