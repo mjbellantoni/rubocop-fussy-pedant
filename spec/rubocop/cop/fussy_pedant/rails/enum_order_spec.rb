@@ -198,6 +198,85 @@ RSpec.describe RuboCop::Cop::FussyPedant::Rails::EnumOrder, :config do
     end
   end
 
+  context 'with configuration' do
+    context 'when CheckAlphabetical is false' do
+      before do
+        allow(cop).to receive(:cop_config).and_return(
+          'CheckAlphabetical' => false,
+          'CheckOnePerLine' => true
+        )
+      end
+
+      it 'does not check alphabetical ordering' do
+        expect_no_offenses(<<~RUBY)
+          class User < ApplicationRecord
+            enum :status, {
+              zebra: 0,
+              alpha: 1
+            }
+          end
+        RUBY
+      end
+    end
+
+    context 'when CheckOnePerLine is false' do
+      before do
+        allow(cop).to receive(:cop_config).and_return(
+          'CheckAlphabetical' => true,
+          'CheckOnePerLine' => false
+        )
+      end
+
+      it 'does not check one-per-line formatting' do
+        expect_no_offenses(<<~RUBY)
+          class User < ApplicationRecord
+            enum :status, { archived: 0, draft: 1, published: 2 }
+          end
+        RUBY
+      end
+    end
+  end
+
+  context 'with edge cases' do
+    it 'handles enum with options after values' do
+      expect_no_offenses(<<~RUBY)
+        class User < ApplicationRecord
+          enum :status, {
+            archived: 0,
+            draft: 1,
+            published: 2
+          }, prefix: true, suffix: :st
+        end
+      RUBY
+    end
+
+    it 'handles single-value enum' do
+      expect_no_offenses(<<~RUBY)
+        class User < ApplicationRecord
+          enum :status, {
+            active: 0
+          }
+        end
+      RUBY
+    end
+
+    it 'handles multiple enum declarations in one class' do
+      expect_offense(<<~RUBY)
+        class User < ApplicationRecord
+          enum :role, {
+            admin: 0,
+            user: 1
+          }
+          enum :status, {
+            published: 0,
+            draft: 1
+            ^^^^^^^^ FussyPedant/Rails/EnumOrder: Enum values should be in alphabetical order. Expected `draft` before `published`.
+          }
+        end
+      RUBY
+    end
+  end
+
   context 'with autocorrect' do
     it 'sorts and reformats hash enum values' do
       expect_offense(<<~RUBY)
