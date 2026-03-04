@@ -64,5 +64,74 @@ RSpec.describe RuboCop::Cop::FussyPedant::Rails::EnumOrder, :config do
         RUBY
       end
     end
+
+    context 'with array form' do
+      it 'does not register an offense when values are alphabetical' do
+        expect_no_offenses(<<~RUBY)
+          class User < ApplicationRecord
+            enum :status, [
+              :archived,
+              :draft,
+              :published
+            ]
+          end
+        RUBY
+      end
+
+      it 'registers an offense when values are not alphabetical' do
+        expect_offense(<<~RUBY)
+          class User < ApplicationRecord
+            enum :status, [
+              :draft,
+              :published,
+              :archived
+              ^^^^^^^^^ FussyPedant/Rails/EnumOrder: Enum values should be in alphabetical order. Expected `archived` before `published`.
+            ]
+          end
+        RUBY
+      end
+    end
+
+    context 'with %i form' do
+      it 'does not register an offense when values are alphabetical' do
+        expect_no_offenses(<<~RUBY)
+          class User < ApplicationRecord
+            enum :status, %i[
+              archived
+              draft
+              published
+            ]
+          end
+        RUBY
+      end
+
+      it 'registers an offense when values are not alphabetical' do
+        expect_offense(<<~RUBY)
+          class User < ApplicationRecord
+            enum :status, %i[
+              draft
+              published
+              archived
+              ^^^^^^^^ FussyPedant/Rails/EnumOrder: Enum values should be in alphabetical order. Expected `archived` before `published`.
+            ]
+          end
+        RUBY
+      end
+    end
+
+    context 'with %w form' do
+      it 'registers an offense when values are not alphabetical' do
+        expect_offense(<<~RUBY)
+          class User < ApplicationRecord
+            enum :status, %w[
+              draft
+              published
+              archived
+              ^^^^^^^^ FussyPedant/Rails/EnumOrder: Enum values should be in alphabetical order. Expected `archived` before `published`.
+            ]
+          end
+        RUBY
+      end
+    end
   end
 end
