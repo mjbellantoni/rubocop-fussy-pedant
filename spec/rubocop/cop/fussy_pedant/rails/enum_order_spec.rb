@@ -22,4 +22,47 @@ RSpec.describe RuboCop::Cop::FussyPedant::Rails::EnumOrder, :config do
       RUBY
     end
   end
+
+  context 'with alphabetical ordering' do
+    context 'with hash form' do
+      it 'does not register an offense when values are alphabetical' do
+        expect_no_offenses(<<~RUBY)
+          class User < ApplicationRecord
+            enum :status, {
+              archived: 0,
+              draft: 1,
+              published: 2
+            }
+          end
+        RUBY
+      end
+
+      it 'registers an offense when values are not alphabetical' do
+        expect_offense(<<~RUBY)
+          class User < ApplicationRecord
+            enum :status, {
+              draft: 0,
+              published: 1,
+              archived: 2
+              ^^^^^^^^^^^ FussyPedant/Rails/EnumOrder: Enum values should be in alphabetical order. Expected `archived` before `published`.
+            }
+          end
+        RUBY
+      end
+
+      it 'registers an offense for each out-of-order pair' do
+        expect_offense(<<~RUBY)
+          class User < ApplicationRecord
+            enum :status, {
+              zebra: 0,
+              beta: 1,
+              ^^^^^^^ FussyPedant/Rails/EnumOrder: Enum values should be in alphabetical order. Expected `beta` before `zebra`.
+              alpha: 2
+              ^^^^^^^^ FussyPedant/Rails/EnumOrder: Enum values should be in alphabetical order. Expected `alpha` before `beta`.
+            }
+          end
+        RUBY
+      end
+    end
+  end
 end
