@@ -30,6 +30,13 @@ FussyPedant/Rails/AssociationOrder:
   Include:
     - 'app/models/**/*.rb'
 
+FussyPedant/Rails/EnumOrder:
+  Enabled: true
+  CheckAlphabetical: true
+  CheckOnePerLine: true
+  Include:
+    - 'app/models/**/*.rb'
+
 FussyPedant/Rails/ServiceCallPattern:
   Enabled: true
   ServicesDirectory: ''
