@@ -1,0 +1,44 @@
+# frozen_string_literal: true
+
+RSpec.describe RuboCop::Cop::FussyPedant::RSpec::NoWait, :config do
+  let(:config) { RuboCop::Config.new }
+
+  context 'with sleep' do
+    it 'registers an offense for bare sleep' do
+      expect_offense(<<~RUBY)
+        sleep
+        ^^^^^ FussyPedant/RSpec/NoWait: Use Capybara's built-in waiting instead of `sleep`.
+      RUBY
+    end
+
+    it 'registers an offense for sleep with argument' do
+      expect_offense(<<~RUBY)
+        sleep 2
+        ^^^^^^^ FussyPedant/RSpec/NoWait: Use Capybara's built-in waiting instead of `sleep`.
+      RUBY
+    end
+
+    it 'registers an offense for sleep with parenthesized argument' do
+      expect_offense(<<~RUBY)
+        sleep(0.5)
+        ^^^^^^^^^^ FussyPedant/RSpec/NoWait: Use Capybara's built-in waiting instead of `sleep`.
+      RUBY
+    end
+  end
+
+  context 'with Kernel.sleep' do
+    it 'registers an offense for Kernel.sleep' do
+      expect_offense(<<~RUBY)
+        Kernel.sleep 2
+        ^^^^^^^^^^^^^^ FussyPedant/RSpec/NoWait: Use Capybara's built-in waiting instead of `sleep`.
+      RUBY
+    end
+
+    it 'registers an offense for Kernel.sleep with parentheses' do
+      expect_offense(<<~RUBY)
+        Kernel.sleep(0.5)
+        ^^^^^^^^^^^^^^^^^ FussyPedant/RSpec/NoWait: Use Capybara's built-in waiting instead of `sleep`.
+      RUBY
+    end
+  end
+end

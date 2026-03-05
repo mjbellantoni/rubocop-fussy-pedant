@@ -8,6 +8,12 @@ FussyPedant/Rails:
 FussyPedant/RSpec:
   Enabled: true
 
+FussyPedant/RSpec/NoWait:
+  Enabled: true
+  Include:
+    - 'spec/**/*.rb'
+    - 'test/**/*.rb'
+
 FussyPedant/Rake:
   Enabled: true
 
