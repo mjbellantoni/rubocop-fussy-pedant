@@ -32,8 +32,9 @@ module RuboCop
         #   Capybara.default_max_wait_time = 5
         class NoWait < RuboCop::Cop::Base
           MSG_SLEEP = "Use Capybara's built-in waiting instead of `sleep`."
+          MSG_WAIT_TIME = "Avoid overriding Capybara's wait time; rely on `default_max_wait_time`."
 
-          RESTRICT_ON_SEND = %i[sleep].freeze
+          RESTRICT_ON_SEND = %i[sleep using_wait_time].freeze
 
           # @!method sleep_call?(node)
           def_node_matcher :sleep_call?, <<~PATTERN
@@ -43,10 +44,17 @@ module RuboCop
             }
           PATTERN
 
-          def on_send(node)
-            return unless sleep_call?(node)
+          # @!method using_wait_time_call?(node)
+          def_node_matcher :using_wait_time_call?, <<~PATTERN
+            (send nil? :using_wait_time ...)
+          PATTERN
 
-            add_offense(node, message: MSG_SLEEP)
+          def on_send(node)
+            if sleep_call?(node)
+              add_offense(node, message: MSG_SLEEP)
+            elsif using_wait_time_call?(node)
+              add_offense(node, message: MSG_WAIT_TIME)
+            end
           end
         end
       end

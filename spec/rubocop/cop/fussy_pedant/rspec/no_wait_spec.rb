@@ -41,4 +41,22 @@ RSpec.describe RuboCop::Cop::FussyPedant::RSpec::NoWait, :config do
       RUBY
     end
   end
+
+  context 'with using_wait_time' do
+    it 'registers an offense for using_wait_time with block' do
+      expect_offense(<<~RUBY)
+        using_wait_time(10) do
+        ^^^^^^^^^^^^^^^^^^^ FussyPedant/RSpec/NoWait: Avoid overriding Capybara's wait time; rely on `default_max_wait_time`.
+          expect(page).to have_content("hello")
+        end
+      RUBY
+    end
+
+    it 'registers an offense for using_wait_time without block' do
+      expect_offense(<<~RUBY)
+        using_wait_time(5)
+        ^^^^^^^^^^^^^^^^^^ FussyPedant/RSpec/NoWait: Avoid overriding Capybara's wait time; rely on `default_max_wait_time`.
+      RUBY
+    end
+  end
 end
