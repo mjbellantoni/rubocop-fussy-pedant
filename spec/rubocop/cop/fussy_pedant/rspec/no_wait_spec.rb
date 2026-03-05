@@ -59,4 +59,34 @@ RSpec.describe RuboCop::Cop::FussyPedant::RSpec::NoWait, :config do
       RUBY
     end
   end
+
+  context 'with wait: keyword argument' do
+    it 'registers an offense for find with wait:' do
+      expect_offense(<<~RUBY)
+        find('.button', wait: 5)
+                        ^^^^^^^ FussyPedant/RSpec/NoWait: Avoid explicit `wait:` option; rely on `default_max_wait_time`.
+      RUBY
+    end
+
+    it 'registers an offense for has_css? with wait:' do
+      expect_offense(<<~RUBY)
+        page.has_css?('.button', wait: 10)
+                                 ^^^^^^^^ FussyPedant/RSpec/NoWait: Avoid explicit `wait:` option; rely on `default_max_wait_time`.
+      RUBY
+    end
+
+    it 'registers an offense for wait: 0' do
+      expect_offense(<<~RUBY)
+        find('.button', wait: 0)
+                        ^^^^^^^ FussyPedant/RSpec/NoWait: Avoid explicit `wait:` option; rely on `default_max_wait_time`.
+      RUBY
+    end
+
+    it 'registers an offense for wait: false' do
+      expect_offense(<<~RUBY)
+        find('.button', wait: false)
+                        ^^^^^^^^^^^ FussyPedant/RSpec/NoWait: Avoid explicit `wait:` option; rely on `default_max_wait_time`.
+      RUBY
+    end
+  end
 end
