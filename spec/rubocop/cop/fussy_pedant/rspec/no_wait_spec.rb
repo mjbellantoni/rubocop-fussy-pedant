@@ -88,6 +88,20 @@ RSpec.describe RuboCop::Cop::FussyPedant::RSpec::NoWait, :config do
                         ^^^^^^^^^^^ FussyPedant/RSpec/NoWait: Avoid explicit `wait:` option; rely on `default_max_wait_time`.
       RUBY
     end
+
+    it 'registers an offense for have_selector with wait:' do
+      expect_offense(<<~RUBY)
+        expect(page).to have_selector('.button', wait: 5)
+                                                 ^^^^^^^ FussyPedant/RSpec/NoWait: Avoid explicit `wait:` option; rely on `default_max_wait_time`.
+      RUBY
+    end
+
+    it 'registers an offense for assert_text with wait:' do
+      expect_offense(<<~RUBY)
+        assert_text('hello', wait: 10)
+                             ^^^^^^^^ FussyPedant/RSpec/NoWait: Avoid explicit `wait:` option; rely on `default_max_wait_time`.
+      RUBY
+    end
   end
 
   context 'when code does not use waits' do
@@ -115,6 +129,24 @@ RSpec.describe RuboCop::Cop::FussyPedant::RSpec::NoWait, :config do
       expect_no_offenses(<<~RUBY)
         process.wait
         thread.join
+      RUBY
+    end
+
+    it 'does not register an offense for wait: in RSpec argument matchers' do
+      expect_no_offenses(<<~RUBY)
+        expect(described_class).to receive(:enqueue_once_with_delay).with(wait: 5, account: account)
+      RUBY
+    end
+
+    it 'does not register an offense for wait: in ActiveJob scheduling' do
+      expect_no_offenses(<<~RUBY)
+        SomeJob.set(wait: 5.minutes).perform_later
+      RUBY
+    end
+
+    it 'does not register an offense for wait: in non-Capybara method calls' do
+      expect_no_offenses(<<~RUBY)
+        enqueue_once_with_delay(wait: retry_delay, account: account)
       RUBY
     end
   end

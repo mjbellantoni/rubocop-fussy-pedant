@@ -50,6 +50,11 @@ module RuboCop
             (send nil? :using_wait_time ...)
           PATTERN
 
+          CAPYBARA_METHODS = %i[
+            find find_all find_field find_link find_button find_by_id
+            all first
+          ].to_set.freeze
+
           # @!method wait_option?(node)
           def_node_matcher :wait_option?, <<~PATTERN
             (pair (sym :wait) _)
@@ -65,8 +70,25 @@ module RuboCop
 
           def on_pair(node)
             return unless wait_option?(node)
+            return unless capybara_method?(node)
 
             add_offense(node, message: MSG_WAIT_OPTION)
+          end
+
+          private
+
+          def capybara_method?(pair_node)
+            send_node = pair_node.parent&.parent
+            return false unless send_node&.send_type?
+
+            method_name = send_node.method_name
+            CAPYBARA_METHODS.include?(method_name) ||
+              capybara_method_pattern?(method_name)
+          end
+
+          def capybara_method_pattern?(method_name)
+            name = method_name.to_s
+            name.start_with?('has_', 'have_', 'assert_')
           end
         end
       end
