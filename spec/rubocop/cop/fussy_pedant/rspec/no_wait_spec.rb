@@ -89,4 +89,33 @@ RSpec.describe RuboCop::Cop::FussyPedant::RSpec::NoWait, :config do
       RUBY
     end
   end
+
+  context 'when code does not use waits' do
+    it 'does not register an offense for Capybara matchers' do
+      expect_no_offenses(<<~RUBY)
+        expect(page).to have_content("hello")
+        expect(page).to have_css('.button')
+      RUBY
+    end
+
+    it 'does not register an offense for default_max_wait_time assignment' do
+      expect_no_offenses(<<~RUBY)
+        Capybara.default_max_wait_time = 5
+      RUBY
+    end
+
+    it 'does not register an offense for non-wait keyword arguments' do
+      expect_no_offenses(<<~RUBY)
+        find('.button', visible: true)
+        find('.button', text: 'Click me')
+      RUBY
+    end
+
+    it 'does not register an offense for wait in non-Capybara context' do
+      expect_no_offenses(<<~RUBY)
+        process.wait
+        thread.join
+      RUBY
+    end
+  end
 end
