@@ -33,7 +33,7 @@ module RuboCop
         class NoWait < RuboCop::Cop::Base
           MSG_SLEEP = "Use Capybara's built-in waiting instead of `sleep`."
           MSG_WAIT_TIME = "Avoid overriding Capybara's wait time; rely on `default_max_wait_time`."
-          MSG_WAIT_OPTION = "Avoid explicit `wait:` option; rely on `default_max_wait_time`."
+          MSG_WAIT_OPTION = 'Avoid explicit `wait:` option; rely on `default_max_wait_time`.'
 
           RESTRICT_ON_SEND = %i[sleep using_wait_time].freeze
 
