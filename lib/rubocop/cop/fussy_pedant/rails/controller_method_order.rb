@@ -42,6 +42,9 @@ module RuboCop
                               'to come before %<other_visibility>s method ' \
                               '`%<other>s`.'
 
+          VISIBILITY_METHODS = { public: :public, protected: :protected, private: :private }.freeze
+          VISIBILITY_RANKS = { public: 0, protected: 1, private: 2 }.freeze
+
           def on_class(node)
             return unless controller_class?(node)
 
@@ -63,38 +66,28 @@ module RuboCop
           end
 
           def collect_methods(class_node)
-            methods = []
-            visibility = :public
-
-            class_node.body&.each_child_node do |child|
-              case child.type
-              when :send
-                new_vis = visibility_from_send(child)
-                if new_vis
-                  if child.arguments.empty?
-                    visibility = new_vis
-                  else
-                    # inline form: private def foo
-                    inner_def = child.first_argument
-                    if inner_def&.def_type?
-                      methods << build_method(inner_def, new_vis, child)
-                    end
-                  end
-                end
-              when :def
-                methods << build_method(child, visibility, child)
-              end
-            end
-
-            methods
+            result = { methods: [], visibility: :public }
+            class_node.body&.each_child_node { |child| process_child(child, result) }
+            result[:methods]
           end
 
-          def visibility_from_send(node)
-            case node.method_name
-            when :public then :public
-            when :protected then :protected
-            when :private then :private
+          def process_child(child, result)
+            case child.type
+            when :send
+              result[:visibility] = process_send(child, result[:visibility], result[:methods])
+            when :def
+              result[:methods] << build_method(child, result[:visibility], child)
             end
+          end
+
+          def process_send(child, visibility, methods)
+            new_vis = VISIBILITY_METHODS[child.method_name]
+            return visibility unless new_vis
+            return new_vis if child.arguments.empty?
+
+            inner_def = child.first_argument
+            methods << build_method(inner_def, new_vis, child) if inner_def&.def_type?
+            visibility
           end
 
           def build_method(def_node, visibility, outer_node)
@@ -111,19 +104,13 @@ module RuboCop
           end
 
           def sort_key(method_info)
-            vis_rank = case method_info[:visibility]
-                       when :public then 0
-                       when :protected then 1
-                       when :private then 2
-                       end
+            vis_rank = VISIBILITY_RANKS[method_info[:visibility]]
+            sub_rank = public_rest?(method_info) ? 0 : 1
+            [vis_rank, sub_rank, method_info[:rest_rank], method_info[:name].to_s]
+          end
 
-            if method_info[:visibility] == :public && method_info[:rest_action]
-              [vis_rank, 0, method_info[:rest_rank], '']
-            elsif method_info[:visibility] == :public
-              [vis_rank, 1, 0, method_info[:name].to_s]
-            else
-              [vis_rank, 0, 0, method_info[:name].to_s]
-            end
+          def public_rest?(method_info)
+            method_info[:visibility] == :public && method_info[:rest_action]
           end
 
           def check_ordering(methods)
@@ -133,40 +120,42 @@ module RuboCop
               expected = sorted[i]
               next if method_info[:name] == expected[:name]
 
-              message = build_message(method_info, methods, sorted, i)
+              message = build_message(method_info, sorted, i)
               add_offense(method_info[:def_node], message: message) do |corrector|
                 autocorrect_methods(corrector, methods)
               end
             end
           end
 
-          def build_message(method_info, methods, sorted, index)
+          def build_message(method_info, sorted, index)
             expected = sorted[index]
+            return section_order_message(expected, method_info) if method_info[:visibility] != expected[:visibility]
+            return rest_order_message(expected, method_info) if method_info[:rest_action] && expected[:rest_action]
 
-            if method_info[:visibility] != expected[:visibility]
-              # Section ordering violation - find what should be here
-              format(MSG_SECTION_ORDER,
-                     visibility: expected[:visibility],
-                     method: expected[:name],
-                     other_visibility: method_info[:visibility],
-                     other: method_info[:name])
-            elsif method_info[:rest_action] && expected[:rest_action]
-              format(MSG_REST_ORDER,
-                     method: expected[:name],
-                     other: method_info[:name])
-            else
-              format(MSG_ALPHABETICAL,
-                     method: expected[:name],
-                     other: method_info[:name],
-                     visibility: method_info[:visibility])
-            end
+            alphabetical_message(expected, method_info)
+          end
+
+          def section_order_message(expected, actual)
+            format(MSG_SECTION_ORDER,
+                   visibility: expected[:visibility], method: expected[:name],
+                   other_visibility: actual[:visibility], other: actual[:name])
+          end
+
+          def rest_order_message(expected, actual)
+            format(MSG_REST_ORDER, method: expected[:name], other: actual[:name])
+          end
+
+          def alphabetical_message(expected, actual)
+            format(MSG_ALPHABETICAL,
+                   method: expected[:name], other: actual[:name],
+                   visibility: actual[:visibility])
           end
 
           def autocorrect_methods(corrector, methods)
             sorted = methods.sort_by { |m| sort_key(m) }
             range = method_range(methods)
             indent = ' ' * range.column
-            corrector.replace(range, build_replacement(sorted, indent, methods))
+            corrector.replace(range, build_replacement(sorted, indent))
           end
 
           def method_range(methods)
@@ -187,39 +176,38 @@ module RuboCop
           end
 
           def leading_comment(node)
-            comments = processed_source.ast_with_comments[node.def_type? ? node : node]
+            comments = processed_source.ast_with_comments[node]
             return nil if comments.nil? || comments.empty?
 
-            # Find comments directly above this node
+            find_contiguous_comment_above(comments, node)
+          end
+
+          def find_contiguous_comment_above(comments, node)
             first_comment = nil
             comments.reverse_each do |comment|
-              if comment.source_range.line == node.source_range.line - 1 ||
-                 (first_comment && comment.source_range.line == first_comment.source_range.line - 1)
-                first_comment = comment
-              end
+              target_line = first_comment ? first_comment.source_range.line - 1 : node.source_range.line - 1
+              first_comment = comment if comment.source_range.line == target_line
             end
             first_comment
           end
 
-          def build_replacement(sorted, indent, original_methods)
+          def build_replacement(sorted, indent)
             lines = []
             prev_visibility = nil
 
             sorted.each_with_index do |method_info, i|
-              # Add blank line between visibility sections
-              if prev_visibility && method_info[:visibility] != prev_visibility
-                lines << ''
-                # Add visibility marker
-                lines << "#{indent}#{method_info[:visibility]}"
-                lines << ''
-              end
-
-              source = method_info[:node].source
-              lines << (i.zero? ? source : "#{indent}#{source}")
+              lines.concat(visibility_separator(method_info, prev_visibility, indent))
+              lines << (i.zero? ? method_info[:node].source : "#{indent}#{method_info[:node].source}")
               prev_visibility = method_info[:visibility]
             end
 
             lines.join("\n")
+          end
+
+          def visibility_separator(method_info, prev_visibility, indent)
+            return [] unless prev_visibility && method_info[:visibility] != prev_visibility
+
+            ['', "#{indent}#{method_info[:visibility]}", '']
           end
         end
       end
