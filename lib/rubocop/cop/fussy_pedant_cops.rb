@@ -5,6 +5,7 @@
 
 require_relative 'fussy_pedant/factory_bot/traits_alphabetical_order'
 require_relative 'fussy_pedant/rails/association_order'
+require_relative 'fussy_pedant/rails/controller_method_order'
 require_relative 'fussy_pedant/rails/enum_order'
 require_relative 'fussy_pedant/rails/service_call_pattern'
 require_relative 'fussy_pedant/rspec/no_wait'

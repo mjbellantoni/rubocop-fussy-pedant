@@ -48,3 +48,16 @@ FussyPedant/Rails/ServiceCallPattern:
   ServicesDirectory: ''
   Include:
     - 'app/services/**/*.rb'
+
+FussyPedant/Rails/ControllerMethodOrder:
+  Enabled: true
+  Include:
+    - 'app/controllers/**/*.rb'
+  RestActions:
+    - index
+    - show
+    - new
+    - create
+    - edit
+    - update
+    - destroy
