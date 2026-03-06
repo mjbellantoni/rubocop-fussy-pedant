@@ -237,4 +237,97 @@ RSpec.describe RuboCop::Cop::FussyPedant::Rails::ControllerMethodOrder, :config 
       RUBY
     end
   end
+
+  context 'with autocorrect' do
+    it 'reorders REST actions to canonical order' do
+      expect_offense(<<~RUBY)
+        class UsersController < ApplicationController
+          def create; end
+          ^^^^^^^^^^^^^^^ FussyPedant/Rails/ControllerMethodOrder: Expected `index` to come before `create` (canonical REST order).
+          def index; end
+          ^^^^^^^^^^^^^^ FussyPedant/Rails/ControllerMethodOrder: Expected `create` to come before `index` (canonical REST order).
+        end
+      RUBY
+
+      expect_correction(<<~RUBY)
+        class UsersController < ApplicationController
+          def index; end
+          def create; end
+        end
+      RUBY
+    end
+
+    it 'reorders all sections correctly in a full controller' do
+      expect_offense(<<~RUBY)
+        class UsersController < ApplicationController
+          def export; end
+          ^^^^^^^^^^^^^^^ FussyPedant/Rails/ControllerMethodOrder: Expected `index` to come before `export` (alphabetical order within public methods).
+          def create; end
+          def index; end
+          ^^^^^^^^^^^^^^ FussyPedant/Rails/ControllerMethodOrder: Expected `archive` to come before `index` (alphabetical order within public methods).
+          def archive; end
+          ^^^^^^^^^^^^^^^^ FussyPedant/Rails/ControllerMethodOrder: Expected `export` to come before `archive` (alphabetical order within public methods).
+
+          protected
+
+          def set_headers; end
+          ^^^^^^^^^^^^^^^^^^^^ FussyPedant/Rails/ControllerMethodOrder: Expected `authorize_user` to come before `set_headers` (alphabetical order within protected methods).
+          def authorize_user; end
+          ^^^^^^^^^^^^^^^^^^^^^^^ FussyPedant/Rails/ControllerMethodOrder: Expected `set_headers` to come before `authorize_user` (alphabetical order within protected methods).
+
+          private
+
+          def user_params; end
+          ^^^^^^^^^^^^^^^^^^^^ FussyPedant/Rails/ControllerMethodOrder: Expected `find_user` to come before `user_params` (alphabetical order within private methods).
+          def find_user; end
+          ^^^^^^^^^^^^^^^^^^ FussyPedant/Rails/ControllerMethodOrder: Expected `user_params` to come before `find_user` (alphabetical order within private methods).
+        end
+      RUBY
+
+      expect_correction(<<~RUBY)
+        class UsersController < ApplicationController
+          def index; end
+          def create; end
+          def archive; end
+          def export; end
+
+          protected
+
+          def authorize_user; end
+          def set_headers; end
+
+          private
+
+          def find_user; end
+          def user_params; end
+        end
+      RUBY
+    end
+
+    it 'sorts private methods alphabetically' do
+      expect_offense(<<~RUBY)
+        class UsersController < ApplicationController
+          def index; end
+
+          private
+
+          def zebra; end
+          ^^^^^^^^^^^^^^ FussyPedant/Rails/ControllerMethodOrder: Expected `alpha` to come before `zebra` (alphabetical order within private methods).
+          def alpha; end
+          ^^^^^^^^^^^^^^ FussyPedant/Rails/ControllerMethodOrder: Expected `zebra` to come before `alpha` (alphabetical order within private methods).
+        end
+      RUBY
+
+      expect_correction(<<~RUBY)
+        class UsersController < ApplicationController
+          def index; end
+
+          private
+
+          def alpha; end
+          def zebra; end
+        end
+      RUBY
+    end
+  end
 end
