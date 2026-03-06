@@ -109,4 +109,43 @@ RSpec.describe RuboCop::Cop::FussyPedant::Rails::ControllerMethodOrder, :config 
       RUBY
     end
   end
+
+  context 'with REST action ordering violations' do
+    it 'registers an offense when REST actions are out of order' do
+      expect_offense(<<~RUBY)
+        class UsersController < ApplicationController
+          def create; end
+          ^^^^^^^^^^^^^^^ FussyPedant/Rails/ControllerMethodOrder: Expected `index` to come before `create` (canonical REST order).
+          def index; end
+          ^^^^^^^^^^^^^^ FussyPedant/Rails/ControllerMethodOrder: Expected `create` to come before `index` (canonical REST order).
+        end
+      RUBY
+    end
+
+    it 'registers an offense when destroy comes before show' do
+      expect_offense(<<~RUBY)
+        class UsersController < ApplicationController
+          def destroy; end
+          ^^^^^^^^^^^^^^^^ FussyPedant/Rails/ControllerMethodOrder: Expected `show` to come before `destroy` (canonical REST order).
+          def show; end
+          ^^^^^^^^^^^^^ FussyPedant/Rails/ControllerMethodOrder: Expected `destroy` to come before `show` (canonical REST order).
+        end
+      RUBY
+    end
+
+    it 'registers multiple offenses for multiple REST misordering' do
+      expect_offense(<<~RUBY)
+        class UsersController < ApplicationController
+          def destroy; end
+          ^^^^^^^^^^^^^^^^ FussyPedant/Rails/ControllerMethodOrder: Expected `index` to come before `destroy` (canonical REST order).
+          def create; end
+          ^^^^^^^^^^^^^^^ FussyPedant/Rails/ControllerMethodOrder: Expected `show` to come before `create` (canonical REST order).
+          def show; end
+          ^^^^^^^^^^^^^ FussyPedant/Rails/ControllerMethodOrder: Expected `create` to come before `show` (canonical REST order).
+          def index; end
+          ^^^^^^^^^^^^^^ FussyPedant/Rails/ControllerMethodOrder: Expected `destroy` to come before `index` (canonical REST order).
+        end
+      RUBY
+    end
+  end
 end
