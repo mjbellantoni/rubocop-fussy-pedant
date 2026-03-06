@@ -330,4 +330,80 @@ RSpec.describe RuboCop::Cop::FussyPedant::Rails::ControllerMethodOrder, :config 
       RUBY
     end
   end
+
+  context 'with edge cases' do
+    it 'handles namespaced controller classes' do
+      expect_offense(<<~RUBY)
+        class Admin::UsersController < ApplicationController
+          def create; end
+          ^^^^^^^^^^^^^^^ FussyPedant/Rails/ControllerMethodOrder: Expected `index` to come before `create` (canonical REST order).
+          def index; end
+          ^^^^^^^^^^^^^^ FussyPedant/Rails/ControllerMethodOrder: Expected `create` to come before `index` (canonical REST order).
+        end
+      RUBY
+    end
+
+    it 'handles deeply nested controller classes' do
+      expect_offense(<<~RUBY)
+        module Admin
+          class UsersController < ApplicationController
+            def create; end
+            ^^^^^^^^^^^^^^^ FussyPedant/Rails/ControllerMethodOrder: Expected `index` to come before `create` (canonical REST order).
+            def index; end
+            ^^^^^^^^^^^^^^ FussyPedant/Rails/ControllerMethodOrder: Expected `create` to come before `index` (canonical REST order).
+          end
+        end
+      RUBY
+    end
+
+    it 'handles controller with no REST actions' do
+      expect_no_offenses(<<~RUBY)
+        class DashboardController < ApplicationController
+          def archive; end
+          def export; end
+          def search; end
+        end
+      RUBY
+    end
+
+    it 'registers an offense for non-REST only controller out of order' do
+      expect_offense(<<~RUBY)
+        class DashboardController < ApplicationController
+          def search; end
+          ^^^^^^^^^^^^^^^ FussyPedant/Rails/ControllerMethodOrder: Expected `archive` to come before `search` (alphabetical order within public methods).
+          def archive; end
+          ^^^^^^^^^^^^^^^^ FussyPedant/Rails/ControllerMethodOrder: Expected `search` to come before `archive` (alphabetical order within public methods).
+        end
+      RUBY
+    end
+
+    it 'handles multi-line method bodies' do
+      expect_no_offenses(<<~RUBY)
+        class UsersController < ApplicationController
+          def index
+            @users = User.all
+            respond_to do |format|
+              format.html
+              format.json { render json: @users }
+            end
+          end
+
+          def show
+            @user = User.find(params[:id])
+          end
+        end
+      RUBY
+    end
+
+    it 'handles controllers inheriting from non-standard bases' do
+      expect_offense(<<~RUBY)
+        class ApiController < ActionController::API
+          def create; end
+          ^^^^^^^^^^^^^^^ FussyPedant/Rails/ControllerMethodOrder: Expected `index` to come before `create` (canonical REST order).
+          def index; end
+          ^^^^^^^^^^^^^^ FussyPedant/Rails/ControllerMethodOrder: Expected `create` to come before `index` (canonical REST order).
+        end
+      RUBY
+    end
+  end
 end
