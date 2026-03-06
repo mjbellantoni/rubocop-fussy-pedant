@@ -192,4 +192,49 @@ RSpec.describe RuboCop::Cop::FussyPedant::Rails::ControllerMethodOrder, :config 
       RUBY
     end
   end
+
+  context 'with section ordering violations' do
+    it 'registers an offense when private method comes before public' do
+      expect_offense(<<~RUBY)
+        class UsersController < ApplicationController
+          private
+
+          def find_user; end
+          ^^^^^^^^^^^^^^^^^^ FussyPedant/Rails/ControllerMethodOrder: Expected public method `index` to come before private method `find_user`.
+          def user_params; end
+          ^^^^^^^^^^^^^^^^^^^^ FussyPedant/Rails/ControllerMethodOrder: Expected `find_user` to come before `user_params` (alphabetical order within private methods).
+
+          public
+
+          def index; end
+          ^^^^^^^^^^^^^^ FussyPedant/Rails/ControllerMethodOrder: Expected private method `user_params` to come before public method `index`.
+        end
+      RUBY
+    end
+
+    it 'handles inline private def form' do
+      expect_no_offenses(<<~RUBY)
+        class UsersController < ApplicationController
+          def index; end
+          def show; end
+
+          private def find_user; end
+          private def user_params; end
+        end
+      RUBY
+    end
+
+    it 'registers an offense for inline private def out of order' do
+      expect_offense(<<~RUBY)
+        class UsersController < ApplicationController
+          def index; end
+
+          private def user_params; end
+                  ^^^^^^^^^^^^^^^^^^^^ FussyPedant/Rails/ControllerMethodOrder: Expected `find_user` to come before `user_params` (alphabetical order within private methods).
+          private def find_user; end
+                  ^^^^^^^^^^^^^^^^^^ FussyPedant/Rails/ControllerMethodOrder: Expected `user_params` to come before `find_user` (alphabetical order within private methods).
+        end
+      RUBY
+    end
+  end
 end
