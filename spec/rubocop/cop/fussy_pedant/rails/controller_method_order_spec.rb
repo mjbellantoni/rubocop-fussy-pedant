@@ -148,4 +148,48 @@ RSpec.describe RuboCop::Cop::FussyPedant::Rails::ControllerMethodOrder, :config 
       RUBY
     end
   end
+
+  context 'with alphabetical ordering violations' do
+    it 'registers an offense for non-REST public methods out of order' do
+      expect_offense(<<~RUBY)
+        class UsersController < ApplicationController
+          def index; end
+          def export; end
+          ^^^^^^^^^^^^^^^ FussyPedant/Rails/ControllerMethodOrder: Expected `archive` to come before `export` (alphabetical order within public methods).
+          def archive; end
+          ^^^^^^^^^^^^^^^^ FussyPedant/Rails/ControllerMethodOrder: Expected `export` to come before `archive` (alphabetical order within public methods).
+        end
+      RUBY
+    end
+
+    it 'registers an offense for private methods out of order' do
+      expect_offense(<<~RUBY)
+        class UsersController < ApplicationController
+          def index; end
+
+          private
+
+          def user_params; end
+          ^^^^^^^^^^^^^^^^^^^^ FussyPedant/Rails/ControllerMethodOrder: Expected `find_user` to come before `user_params` (alphabetical order within private methods).
+          def find_user; end
+          ^^^^^^^^^^^^^^^^^^ FussyPedant/Rails/ControllerMethodOrder: Expected `user_params` to come before `find_user` (alphabetical order within private methods).
+        end
+      RUBY
+    end
+
+    it 'registers an offense for protected methods out of order' do
+      expect_offense(<<~RUBY)
+        class UsersController < ApplicationController
+          def index; end
+
+          protected
+
+          def set_headers; end
+          ^^^^^^^^^^^^^^^^^^^^ FussyPedant/Rails/ControllerMethodOrder: Expected `authorize_user` to come before `set_headers` (alphabetical order within protected methods).
+          def authorize_user; end
+          ^^^^^^^^^^^^^^^^^^^^^^^ FussyPedant/Rails/ControllerMethodOrder: Expected `set_headers` to come before `authorize_user` (alphabetical order within protected methods).
+        end
+      RUBY
+    end
+  end
 end
