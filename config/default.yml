@@ -27,6 +27,11 @@ FussyPedant/RSpec/RequestSpecOrder:
     - update
     - destroy
 
+FussyPedant/RSpec/ModelSpecMethodOrder:
+  Enabled: true
+  Include:
+    - 'spec/models/**/*.rb'
+
 FussyPedant/RSpec/ServiceDescribeCall:
   Enabled: true
   Include:
