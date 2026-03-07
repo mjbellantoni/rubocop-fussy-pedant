@@ -14,6 +14,19 @@ FussyPedant/RSpec/NoWait:
     - 'spec/**/*.rb'
     - 'test/**/*.rb'
 
+FussyPedant/RSpec/RequestSpecOrder:
+  Enabled: true
+  Include:
+    - 'spec/requests/**/*.rb'
+  RestActions:
+    - index
+    - show
+    - new
+    - create
+    - edit
+    - update
+    - destroy
+
 FussyPedant/RSpec/ServiceDescribeCall:
   Enabled: true
   Include:
