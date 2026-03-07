@@ -14,6 +14,11 @@ FussyPedant/RSpec/NoWait:
     - 'spec/**/*.rb'
     - 'test/**/*.rb'
 
+FussyPedant/RSpec/ServiceDescribeCall:
+  Enabled: true
+  Include:
+    - 'spec/services/**/*.rb'
+
 FussyPedant/Rake:
   Enabled: true
 
