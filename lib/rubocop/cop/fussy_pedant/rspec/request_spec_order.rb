@@ -109,6 +109,7 @@ module RuboCop
             verb = match[1].upcase
             path = match[2]
             shape = path_shape(path)
+            return nil unless shape
 
             REST_PATTERNS[[verb, shape]]
           end
