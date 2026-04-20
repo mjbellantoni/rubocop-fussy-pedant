@@ -145,7 +145,17 @@ module RuboCop
           end
 
           def when_condition(guard)
-            guard.unless? ? "!#{guard.condition.source}" : guard.condition.source
+            return guard.condition.source unless guard.unless?
+
+            negate_condition(guard.condition)
+          end
+
+          def negate_condition(condition)
+            if condition.or_type? || condition.and_type?
+              "!(#{condition.source})"
+            else
+              "!#{condition.source}"
+            end
           end
 
           def else_branch(final_expr, indent)

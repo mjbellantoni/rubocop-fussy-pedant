@@ -461,6 +461,54 @@ RSpec.describe RuboCop::Cop::FussyPedant::Ruby::NoTerminalGuardClause, :config d
       end
     end
 
+    context 'when unless guard has a compound || condition' do
+      it 'parenthesizes the negated condition in case/when' do
+        expect_offense(<<~RUBY)
+          def foo
+            return [] unless disposition
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ FussyPedant/Ruby/NoTerminalGuardClause: Use `case/when` instead of guard clauses before the final expression.
+            return [:stopped] unless disposition.snoozed? || disposition.awaiting?
+            items.sort
+          end
+        RUBY
+
+        expect_correction(<<~RUBY)
+          def foo
+            case
+            when !disposition
+              []
+            when !(disposition.snoozed? || disposition.awaiting?)
+              [:stopped]
+            else
+              items.sort
+            end
+          end
+        RUBY
+      end
+    end
+
+    context 'when unless guard has a compound && condition' do
+      it 'parenthesizes the negated condition in case/when' do
+        expect_offense(<<~RUBY)
+          def foo
+            return [] unless admin? && active?
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ FussyPedant/Ruby/NoTerminalGuardClause: Use `if/else` instead of a guard clause before the final expression.
+            items.sort
+          end
+        RUBY
+
+        expect_correction(<<~RUBY)
+          def foo
+            if admin? && active?
+              items.sort
+            else
+              []
+            end
+          end
+        RUBY
+      end
+    end
+
     context 'when body is a single expression (no begin node)' do
       it 'does not register an offense' do
         expect_no_offenses(<<~RUBY)
