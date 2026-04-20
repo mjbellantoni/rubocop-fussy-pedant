@@ -335,28 +335,67 @@ RSpec.describe RuboCop::Cop::FussyPedant::Ruby::NoTerminalGuardClause, :config d
     end
   end
 
-  context 'with edge cases' do
-    context 'when guard uses return without a value' do
-      it 'registers an offense and corrects to nil' do
-        expect_offense(<<~RUBY)
-          def foo
-            return if items.empty?
-            ^^^^^^^^^^^^^^^^^^^^^^ FussyPedant/Ruby/NoTerminalGuardClause: Use `if/else` instead of a guard clause before the final expression.
+  context 'when guard uses bare return and Style/GuardClause is enabled' do
+    it 'does not register an offense to avoid autocorrect cycle' do
+      expect_no_offenses(<<~RUBY)
+        def foo
+          return if items.empty?
+          items.sort
+        end
+      RUBY
+    end
+
+    it 'does not register an offense with multiple bare-return guards' do
+      expect_no_offenses(<<~RUBY)
+        def foo
+          return if items.empty?
+          return if items.frozen?
+          items.sort
+        end
+      RUBY
+    end
+
+    it 'still registers an offense when guard returns a value' do
+      expect_offense(<<~RUBY)
+        def foo
+          return [] if items.empty?
+          ^^^^^^^^^^^^^^^^^^^^^^^^^ FussyPedant/Ruby/NoTerminalGuardClause: Use `if/else` instead of a guard clause before the final expression.
+          items.sort
+        end
+      RUBY
+    end
+  end
+
+  context 'when guard uses bare return and Style/GuardClause is disabled' do
+    let(:config) do
+      RuboCop::Config.new(
+        'FussyPedant/Ruby/NoTerminalGuardClause' => { 'Enabled' => true },
+        'Style/GuardClause' => { 'Enabled' => false }
+      )
+    end
+
+    it 'registers an offense and corrects to nil' do
+      expect_offense(<<~RUBY)
+        def foo
+          return if items.empty?
+          ^^^^^^^^^^^^^^^^^^^^^^ Use `if/else` instead of a guard clause before the final expression.
+          items.sort
+        end
+      RUBY
+
+      expect_correction(<<~RUBY)
+        def foo
+          if items.empty?
+            nil
+          else
             items.sort
           end
-        RUBY
-
-        expect_correction(<<~RUBY)
-          def foo
-            if items.empty?
-              nil
-            else
-              items.sort
-            end
-          end
-        RUBY
-      end
+        end
+      RUBY
     end
+  end
+
+  context 'with edge cases' do
 
     context 'when guard uses unless' do
       it 'registers an offense and corrects with flipped branches' do

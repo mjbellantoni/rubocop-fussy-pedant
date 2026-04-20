@@ -47,6 +47,7 @@ module RuboCop
             guards = terminal_guard_clauses(statements)
             return if guards.empty?
             return if block_control_structure?(statements.last)
+            return if guard_clause_cycle?(guards)
 
             register_offense(guards, statements.last)
           end
@@ -79,6 +80,18 @@ module RuboCop
 
           def block_control_structure?(node)
             node.case_type? || (node.if_type? && !node.ternary?)
+          end
+
+          def guard_clause_cycle?(guards)
+            guard_clause_cop_enabled? && guards.all? { |g| bare_return?(g) }
+          end
+
+          def guard_clause_cop_enabled?
+            config.for_cop('Style/GuardClause')['Enabled']
+          end
+
+          def bare_return?(guard)
+            guard.if_branch.children.first.nil?
           end
 
           def guard_clause?(node)
