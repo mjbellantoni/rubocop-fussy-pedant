@@ -78,6 +78,112 @@ RSpec.describe RuboCop::Cop::FussyPedant::RSpec::ServiceDescribeCall, :config do
     end
   end
 
+  context 'when describe .call has hooks and siblings' do
+    it 'registers an offense but does not autocorrect when before would leak' do
+      expect_offense(<<~RUBY)
+        RSpec.describe MyService do
+          describe '.call' do
+          ^^^^^^^^^^^^^^^^ FussyPedant/RSpec/ServiceDescribeCall: Remove redundant `describe '.call'` — service specs test a single method.
+            before { create(:record) }
+
+            it 'does something' do; end
+          end
+
+          context 'with errors' do
+            before { create(:error_record) }
+
+            it 'handles errors' do; end
+          end
+        end
+      RUBY
+
+      expect_no_corrections
+    end
+
+    it 'registers an offense but does not autocorrect when after would leak' do
+      expect_offense(<<~RUBY)
+        RSpec.describe MyService do
+          describe '.call' do
+          ^^^^^^^^^^^^^^^^ FussyPedant/RSpec/ServiceDescribeCall: Remove redundant `describe '.call'` — service specs test a single method.
+            after { cleanup }
+
+            it 'does something' do; end
+          end
+
+          context 'with errors' do
+            it 'handles errors' do; end
+          end
+        end
+      RUBY
+
+      expect_no_corrections
+    end
+
+    it 'registers an offense but does not autocorrect when around would leak' do
+      expect_offense(<<~RUBY)
+        RSpec.describe MyService do
+          describe '.call' do
+          ^^^^^^^^^^^^^^^^ FussyPedant/RSpec/ServiceDescribeCall: Remove redundant `describe '.call'` — service specs test a single method.
+            around { |ex| Timecop.freeze { ex.run } }
+
+            it 'does something' do; end
+          end
+
+          context 'with errors' do
+            it 'handles errors' do; end
+          end
+        end
+      RUBY
+
+      expect_no_corrections
+    end
+
+    it 'still autocorrects when describe .call has hooks but no siblings' do
+      expect_offense(<<~RUBY)
+        RSpec.describe MyService do
+          describe '.call' do
+          ^^^^^^^^^^^^^^^^ FussyPedant/RSpec/ServiceDescribeCall: Remove redundant `describe '.call'` — service specs test a single method.
+            before { create(:record) }
+
+            it 'does something' do; end
+          end
+        end
+      RUBY
+
+      expect_correction(<<~RUBY)
+        RSpec.describe MyService do
+          before { create(:record) }
+
+          it 'does something' do; end
+        end
+      RUBY
+    end
+
+    it 'still autocorrects when describe .call has siblings but no hooks' do
+      expect_offense(<<~RUBY)
+        RSpec.describe MyService do
+          describe '.call' do
+          ^^^^^^^^^^^^^^^^ FussyPedant/RSpec/ServiceDescribeCall: Remove redundant `describe '.call'` — service specs test a single method.
+            it 'does something' do; end
+          end
+
+          context 'with errors' do
+            it 'handles errors' do; end
+          end
+        end
+      RUBY
+
+      expect_correction(<<~RUBY)
+        RSpec.describe MyService do
+          it 'does something' do; end
+          context 'with errors' do
+            it 'handles errors' do; end
+          end
+        end
+      RUBY
+    end
+  end
+
   context 'with autocorrect' do
     it 'unwraps describe .call and promotes children' do
       expect_offense(<<~RUBY)

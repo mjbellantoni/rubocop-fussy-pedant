@@ -30,18 +30,39 @@ module RuboCop
           def on_block(node)
             return unless rspec_describe?(node)
 
-            body_children(node.body).each do |child|
+            children = body_children(node.body)
+            children.each do |child|
               next unless child.block_type? && call_describe?(child)
 
               message = format(MSG, method: describe_text(child))
-              add_offense(child.send_node, message: message) do |corrector|
-                autocorrect(corrector, child, node)
+              if hook_scope_leak?(child, children)
+                add_offense(child.send_node, message: message)
+              else
+                add_offense(child.send_node, message: message) do |corrector|
+                  autocorrect(corrector, child, node)
+                end
               end
             end
           end
           alias on_numblock on_block
 
           private
+
+          HOOK_METHODS = %i[before after around].freeze
+
+          def hook_scope_leak?(describe_block, siblings)
+            has_hooks?(describe_block) && has_sibling_blocks?(describe_block, siblings)
+          end
+
+          def has_hooks?(node)
+            body_children(node.body).any? do |child|
+              child.block_type? && HOOK_METHODS.include?(child.method_name)
+            end
+          end
+
+          def has_sibling_blocks?(node, siblings)
+            siblings.any? { |s| s != node && s.block_type? }
+          end
 
           def body_children(body)
             return [] unless body
