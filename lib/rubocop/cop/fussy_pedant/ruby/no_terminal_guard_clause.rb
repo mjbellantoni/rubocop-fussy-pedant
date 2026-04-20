@@ -111,11 +111,21 @@ module RuboCop
           end
 
           def build_if_else(guard, final_expr, indent)
+            return build_branchless(guard, final_expr, indent) if bare_return?(guard)
+
             if_val, else_val = if_else_branches(guard, final_expr, indent)
             "if #{guard.condition.source}\n" \
               "#{indent}  #{if_val}\n" \
               "#{indent}else\n" \
               "#{indent}  #{else_val}\n" \
+              "#{indent}end"
+          end
+
+          def build_branchless(guard, final_expr, indent)
+            keyword = guard.unless? ? 'if' : 'unless'
+            final_source = reindent_source(final_expr, indent)
+            "#{keyword} #{guard.condition.source}\n" \
+              "#{indent}  #{final_source}\n" \
               "#{indent}end"
           end
 

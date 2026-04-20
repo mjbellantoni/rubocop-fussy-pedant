@@ -374,7 +374,7 @@ RSpec.describe RuboCop::Cop::FussyPedant::Ruby::NoTerminalGuardClause, :config d
       )
     end
 
-    it 'registers an offense and corrects to nil' do
+    it 'corrects bare return if to unless without else' do
       expect_offense(<<~RUBY)
         def foo
           return if items.empty?
@@ -385,9 +385,25 @@ RSpec.describe RuboCop::Cop::FussyPedant::Ruby::NoTerminalGuardClause, :config d
 
       expect_correction(<<~RUBY)
         def foo
-          if items.empty?
-            nil
-          else
+          unless items.empty?
+            items.sort
+          end
+        end
+      RUBY
+    end
+
+    it 'corrects bare return unless to if without else' do
+      expect_offense(<<~RUBY)
+        def foo
+          return unless items.present?
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Use `if/else` instead of a guard clause before the final expression.
+          items.sort
+        end
+      RUBY
+
+      expect_correction(<<~RUBY)
+        def foo
+          if items.present?
             items.sort
           end
         end
