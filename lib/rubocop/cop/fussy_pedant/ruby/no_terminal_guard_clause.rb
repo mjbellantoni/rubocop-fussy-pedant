@@ -46,6 +46,7 @@ module RuboCop
 
             guards = terminal_guard_clauses(statements)
             return if guards.empty?
+            return if block_control_structure?(statements.last)
 
             register_offense(guards, statements.last)
           end
@@ -74,6 +75,10 @@ module RuboCop
               index -= 1
             end
             guards
+          end
+
+          def block_control_structure?(node)
+            node.case_type? || (node.if_type? && !node.ternary?)
           end
 
           def guard_clause?(node)

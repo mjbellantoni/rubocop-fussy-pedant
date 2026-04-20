@@ -132,6 +132,56 @@ RSpec.describe RuboCop::Cop::FussyPedant::Ruby::NoTerminalGuardClause, :config d
     end
   end
 
+  context 'when the final expression is a control structure' do
+    it 'does not register an offense when final expression is an if' do
+      expect_no_offenses(<<~RUBY)
+        def foo
+          return [] if items.empty?
+          if admin?
+            admin_items
+          else
+            regular_items
+          end
+        end
+      RUBY
+    end
+
+    it 'does not register an offense when final expression is an unless' do
+      expect_no_offenses(<<~RUBY)
+        def foo
+          return [] if items.empty?
+          unless blocked?
+            perform_action
+          end
+        end
+      RUBY
+    end
+
+    it 'does not register an offense when final expression is a case' do
+      expect_no_offenses(<<~RUBY)
+        def foo
+          return [] if items.empty?
+          case role
+          when :admin
+            admin_items
+          else
+            regular_items
+          end
+        end
+      RUBY
+    end
+
+    it 'still registers an offense when final expression is a ternary' do
+      expect_offense(<<~RUBY)
+        def foo
+          return [] if items.empty?
+          ^^^^^^^^^^^^^^^^^^^^^^^^^ FussyPedant/Ruby/NoTerminalGuardClause: Use `if/else` instead of a guard clause before the final expression.
+          admin? ? admin_items : regular_items
+        end
+      RUBY
+    end
+  end
+
   context 'with autocorrect' do
     context 'when a single guard clause is present' do
       it 'corrects to if/else' do
