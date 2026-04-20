@@ -196,8 +196,15 @@ module RuboCop
             prev_visibility = nil
 
             sorted.each_with_index do |method_info, i|
-              lines.concat(visibility_separator(method_info, prev_visibility, indent))
-              lines << (i.zero? ? method_info[:node].source : "#{indent}#{method_info[:node].source}")
+              sep = visibility_separator(method_info, prev_visibility, indent)
+              lines.concat(sep)
+              lines << if i.zero?
+                         method_info[:node].source
+                       elsif sep.any?
+                         "#{indent}#{method_info[:node].source}"
+                       else
+                         "\n#{indent}#{method_info[:node].source}"
+                       end
               prev_visibility = method_info[:visibility]
             end
 

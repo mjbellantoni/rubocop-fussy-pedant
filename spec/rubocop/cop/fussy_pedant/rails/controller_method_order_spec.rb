@@ -252,6 +252,7 @@ RSpec.describe RuboCop::Cop::FussyPedant::Rails::ControllerMethodOrder, :config 
       expect_correction(<<~RUBY)
         class UsersController < ApplicationController
           def index; end
+
           def create; end
         end
       RUBY
@@ -287,19 +288,53 @@ RSpec.describe RuboCop::Cop::FussyPedant::Rails::ControllerMethodOrder, :config 
       expect_correction(<<~RUBY)
         class UsersController < ApplicationController
           def index; end
+
           def create; end
+
           def archive; end
+
           def export; end
 
           protected
 
           def authorize_user; end
+
           def set_headers; end
 
           private
 
           def find_user; end
+
           def user_params; end
+        end
+      RUBY
+    end
+
+    it 'inserts blank lines between reordered multi-line methods' do
+      expect_offense(<<~RUBY)
+        class UsersController < ApplicationController
+          def create
+          ^^^^^^^^^^ FussyPedant/Rails/ControllerMethodOrder: Expected `index` to come before `create` (canonical REST order).
+            @user = User.create(user_params)
+            redirect_to @user
+          end
+          def index
+          ^^^^^^^^^ FussyPedant/Rails/ControllerMethodOrder: Expected `create` to come before `index` (canonical REST order).
+            @users = User.all
+          end
+        end
+      RUBY
+
+      expect_correction(<<~RUBY)
+        class UsersController < ApplicationController
+          def index
+            @users = User.all
+          end
+
+          def create
+            @user = User.create(user_params)
+            redirect_to @user
+          end
         end
       RUBY
     end
@@ -325,6 +360,7 @@ RSpec.describe RuboCop::Cop::FussyPedant::Rails::ControllerMethodOrder, :config 
           private
 
           def alpha; end
+
           def zebra; end
         end
       RUBY
