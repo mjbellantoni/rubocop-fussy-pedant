@@ -57,6 +57,10 @@ FussyPedant/Ruby/CommentLineLength:
   Enabled: true
   MaxColumn: 72
 
+FussyPedant/Ruby/NoSingleLineCaseBody:
+  Enabled: true
+  Description: 'Move case/when/else body to the next line.'
+
 FussyPedant/Ruby/NoTerminalGuardClause:
   Enabled: true
   Description: 'Use if/else or case/when instead of guard clause(s) before the final expression.'
