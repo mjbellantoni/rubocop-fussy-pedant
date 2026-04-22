@@ -57,6 +57,10 @@ FussyPedant/Ruby/CommentLineLength:
   Enabled: true
   MaxColumn: 72
 
+FussyPedant/Ruby/NoNonAsciiInComment:
+  Enabled: true
+  Description: 'Avoid non-ASCII characters in comments.'
+
 FussyPedant/Ruby/NoSingleLineCaseBody:
   Enabled: true
   Description: 'Move case/when/else body to the next line.'
