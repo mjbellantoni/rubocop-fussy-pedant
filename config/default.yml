@@ -116,6 +116,32 @@ FussyPedant/Rails/EnumOrder:
   Include:
     - 'app/models/**/*.rb'
 
+FussyPedant/Rails/MigrationNameVerb:
+  Enabled: true
+  Description: 'Migration class names should start with a verb.'
+  Include:
+    - 'db/migrate/**/*.rb'
+  Verbs:
+    - Add
+    - Remove
+    - Create
+    - Drop
+    - Change
+    - Rename
+    - Backfill
+    - Populate
+    - Update
+    - Migrate
+    - Fix
+    - Set
+    - Reset
+    - Convert
+    - Replace
+    - Enable
+    - Disable
+    - Cleanup
+    - Recreate
+
 FussyPedant/Rails/ServiceCallPattern:
   Enabled: true
   ServicesDirectory: ''
