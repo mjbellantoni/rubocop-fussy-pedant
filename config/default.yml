@@ -55,7 +55,7 @@ FussyPedant/FactoryBot/TraitsAlphabeticalOrder:
 
 FussyPedant/Ruby/AttrShadowingBuiltin:
   Enabled: true
-  Description: 'Do not shadow built-in methods with attr_* accessors.'
+  Description: 'Do not shadow built-in methods with attr_reader/attr_accessor/attr.'
   AllowedNames: []
 
 FussyPedant/Ruby/CommentLineLength:

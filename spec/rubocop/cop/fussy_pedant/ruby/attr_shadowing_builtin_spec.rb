@@ -17,6 +17,21 @@ RSpec.describe RuboCop::Cop::FussyPedant::Ruby::AttrShadowingBuiltin, :config do
     RUBY
   end
 
+  it 'registers an offense for bare legacy attr shadowing a builtin' do
+    expect_offense(<<~RUBY)
+      attr :method
+           ^^^^^^^ FussyPedant/Ruby/AttrShadowingBuiltin: `method` shadows a built-in method; choose a non-colliding name.
+    RUBY
+  end
+
+  it 'registers two offenses on one line for attr_accessor' do
+    expect_offense(<<~RUBY)
+      attr_accessor :method, :class
+                    ^^^^^^^ FussyPedant/Ruby/AttrShadowingBuiltin: `method` shadows a built-in method; choose a non-colliding name.
+                             ^^^^^^ FussyPedant/Ruby/AttrShadowingBuiltin: `class` shadows a built-in method; choose a non-colliding name.
+    RUBY
+  end
+
   it 'accepts non-colliding names' do
     expect_no_offenses('attr_reader :http_method, :name')
   end

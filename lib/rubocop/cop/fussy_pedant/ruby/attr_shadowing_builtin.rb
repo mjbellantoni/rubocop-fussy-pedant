@@ -20,6 +20,10 @@ module RuboCop
 
           READER_MACROS = %i[attr_reader attr_accessor attr].freeze
 
+          # Computed from the running Ruby's core classes, so it is
+          # deterministic per Ruby version but may shift slightly across
+          # Ruby versions. `AllowedNames` is the escape hatch for names a
+          # project legitimately uses (e.g. :format, :select, :open).
           BUILTIN_METHODS = (
             Object.instance_methods +
             Object.private_instance_methods +
