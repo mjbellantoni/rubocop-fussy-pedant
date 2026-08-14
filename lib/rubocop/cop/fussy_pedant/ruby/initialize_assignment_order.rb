@@ -51,6 +51,9 @@ module RuboCop
           end
 
           def check_run(run)
+            # Compares each assignment against its immediate predecessor
+            # (adjacent-pair strategy), so the message names the neighbor,
+            # not the earliest violated position.
             run.each_cons(2) do |prev, curr|
               prev_name = prev.name.to_s
               curr_name = curr.name.to_s
