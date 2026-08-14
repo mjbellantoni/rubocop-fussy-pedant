@@ -30,4 +30,15 @@ RSpec.describe RuboCop::Cop::FussyPedant::Rails::MigrationNameVerb, :config do
       end
     RUBY
   end
+
+  it 'also flags a non-verb helper class in the same file' do
+    expect_offense(<<~RUBY)
+      class AddThings < ActiveRecord::Migration[7.1]
+      end
+
+      class Helper
+            ^^^^^^ Migration class name should start with a verb (e.g. `Add`, `Remove`, `Create`).
+      end
+    RUBY
+  end
 end
