@@ -125,4 +125,9 @@ FussyPedant/Rails/ServiceCallPattern:
   ServicesDirectory: app/services
 ```
 
+**Exemptions.** Two kinds of class that live under `app/services` are not services and are skipped:
+
+- **`Data.define` value objects** — a constant defined as `Foo = Data.define(...)` or `class Foo < Data.define(...)` is treated as a value object. It is not required to implement `self.call`, and its `.new` calls are not flagged.
+- **Inherited `self.call`** — a service that inherits `def self.call` from a base class (for example `class RentManager < Extractors::Base`) is not flagged for a missing `self.call`, as long as the base class file can be resolved via the same `ServicesDirectory` lookup used by Rule 5. If the base cannot be resolved, the cop falls back to requiring a local `self.call`.
+
 The cop skips exception classes, modules, and allows `.new` calls within a service's own `self.call` method and in spec files.
