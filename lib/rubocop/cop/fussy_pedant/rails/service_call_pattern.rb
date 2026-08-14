@@ -54,17 +54,22 @@ module RuboCop
           MSG_WRONG_INSTANCE_METHOD = "Service instance method must be named 'call', found: %<method>s"
           MSG_DIRECT_INSTANTIATION = 'Services should be invoked via .call, not .new'
 
+          # How many levels of superclass to follow when looking for an
+          # inherited `def self.call` across files.
+          MAX_ANCESTOR_DEPTH = 5
+
           def on_class(node) # rubocop:disable Metrics
             return unless in_services_directory?
             return if module_definition?(node)
             return if exception_class?(node)
+            return if data_define_superclass?(node)
 
             class_methods = collect_class_methods(node)
             instance_methods = collect_public_instance_methods(node)
 
             call_method = class_methods.find { |m| m.method_name == :call }
             unless call_method
-              add_offense(node, message: MSG_MISSING_CALL)
+              add_offense(node, message: MSG_MISSING_CALL) unless inherited_call?(node)
               return
             end
 
@@ -78,6 +83,7 @@ module RuboCop
             return unless service_class?(node.receiver)
             return if in_spec_file?
             return if in_service_class_definition?(node)
+            return if data_define_constant?(node.receiver)
 
             add_offense(node, message: MSG_DIRECT_INSTANTIATION)
           end
@@ -189,17 +195,26 @@ module RuboCop
           end
 
           def service_class?(receiver_node)
-            return false unless receiver_node&.const_type?
-            return false unless services_directory
+            path = const_file_path(receiver_node)
+            return false unless path
 
-            class_name = receiver_node.source
-            file_path = class_name
-                        .gsub('::', '/')
-                        .gsub(/([A-Z]+)([A-Z][a-z])/, '\1_\2')
-                        .gsub(/([a-z\d])([A-Z])/, '\1_\2')
-                        .downcase
+            File.exist?(path)
+          end
 
-            File.exist?(File.join(services_directory, "#{file_path}.rb"))
+          # Resolves a const node to the source file it would live in under
+          # the configured ServicesDirectory. Returns nil when the receiver
+          # is not a const or no ServicesDirectory is configured.
+          def const_file_path(const_node)
+            return unless const_node&.const_type?
+            return unless services_directory
+
+            relative = const_node.source
+                                 .gsub('::', '/')
+                                 .gsub(/([A-Z]+)([A-Z][a-z])/, '\1_\2')
+                                 .gsub(/([a-z\d])([A-Z])/, '\1_\2')
+                                 .downcase
+
+            File.join(services_directory, "#{relative}.rb")
           end
 
           def services_directory
@@ -207,6 +222,99 @@ module RuboCop
             return if dir.nil? || dir.empty?
 
             File.join(config.base_dir_for_path_parameters, dir)
+          end
+
+          # Behavior A: `class Foo < Data.define(:a, :b)` — the superclass is a
+          # `send` to `Data.define`. No file I/O required.
+          def data_define_superclass?(node)
+            data_define_node?(node.parent_class)
+          end
+
+          def data_define_node?(node)
+            node&.send_type? &&
+              node.method?(:define) &&
+              node.receiver&.const_type? &&
+              node.receiver.short_name == :Data
+          end
+
+          # Behavior B: a service with no local `self.call` may inherit it from a
+          # superclass whose source file we can resolve. Recurse a few levels;
+          # fall back to current behavior when a file can't be resolved/read.
+          def inherited_call?(node, depth = 0)
+            return false if depth >= MAX_ANCESTOR_DEPTH
+
+            parent = node.parent_class
+            return false unless parent&.const_type?
+
+            ast = resolved_ast(const_file_path(parent))
+            return false unless ast
+
+            class_node = find_class_node(ast, parent.short_name)
+            return false unless class_node
+
+            defines_self_call?(class_node) || inherited_call?(class_node, depth + 1)
+          end
+
+          # Behavior C: `.new` on a const whose file defines it as a Data.define
+          # value object (either assignment or class-superclass form).
+          def data_define_constant?(const_node)
+            ast = resolved_ast(const_file_path(const_node))
+            return false unless ast
+
+            data_define_definition?(ast, const_node.short_name)
+          end
+
+          def defines_self_call?(class_node)
+            collect_class_methods(class_node).any? { |m| m.method_name == :call }
+          end
+
+          # Finds a `class NAME` definition anywhere in the given AST.
+          def find_class_node(ast, short_name)
+            ast.each_node(:class).find do |n|
+              n.identifier.short_name == short_name
+            end
+          end
+
+          # True when `short_name` is defined as a Data.define value object,
+          # either `NAME = Data.define(...)` or `class NAME < Data.define(...)`.
+          def data_define_definition?(ast, short_name)
+            ast.each_node(:casgn, :class).any? do |n|
+              casgn_data_define?(n, short_name) || class_data_define?(n, short_name)
+            end
+          end
+
+          def casgn_data_define?(node, short_name)
+            node.casgn_type? && node.name == short_name && data_define_node?(node.expression)
+          end
+
+          def class_data_define?(node, short_name)
+            node.class_type? &&
+              node.identifier.short_name == short_name &&
+              data_define_superclass?(node)
+          end
+
+          # Parses a resolved source file to an AST, memoized per path. Any
+          # I/O or parse failure returns nil so the caller falls back to
+          # existing behavior rather than raising or globally exempting.
+          def resolved_ast(path)
+            return unless path
+
+            @resolved_ast ||= {}
+            return @resolved_ast[path] if @resolved_ast.key?(path)
+
+            @resolved_ast[path] = load_ast(path)
+          end
+
+          def load_ast(path)
+            return unless File.exist?(path)
+
+            RuboCop::ProcessedSource.from_file(path, target_ruby_version).ast
+          rescue StandardError
+            nil
+          end
+
+          def target_ruby_version
+            config.target_ruby_version
           end
 
           def in_services_directory?
