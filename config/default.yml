@@ -94,6 +94,10 @@ FussyPedant/Ruby/NoTerminalGuardClause:
   Enabled: true
   Description: 'Use if/else or case/when instead of guard clause(s) before the final expression.'
 
+FussyPedant/Ruby/SinglePrivateClassMethod:
+  Enabled: true
+  Description: 'Use one private_class_method directive per method.'
+
 FussyPedant/Ruby/SpaceInsidePercentArray:
   Enabled: true
   Description: 'Put a space inside the delimiters of a percent array.'
