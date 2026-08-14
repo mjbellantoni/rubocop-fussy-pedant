@@ -5,6 +5,8 @@ require:
 AllCops:
   TargetRubyVersion: 3.3
   NewCops: enable
+  Exclude:
+    - 'spec/fixtures/**/*'
 
 Style/StringLiterals:
   EnforcedStyle: single_quotes
