@@ -57,6 +57,14 @@ FussyPedant/Ruby/CommentLineLength:
   Enabled: true
   MaxColumn: 72
 
+FussyPedant/Ruby/ConsistentArrayCoercion:
+  Enabled: true
+  Description: 'Use a consistent array-coercion idiom.'
+  EnforcedStyle: array_coercion
+  SupportedStyles:
+    - array_coercion
+    - logical_or
+
 FussyPedant/Ruby/ConstantDefinitionOrder:
   Enabled: true
   Description: 'Alphabetize constant definitions within a class or module.'
