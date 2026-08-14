@@ -30,6 +30,24 @@ RSpec.describe RuboCop::Cop::FussyPedant::Ruby::ConsistentArrayCoercion, :config
     it 'ignores || with a non-array default' do
       expect_no_offenses('(rows || {})')
     end
+
+    it 'flags a bare || without parens' do
+      expect_offense(<<~RUBY)
+        rows || []
+        ^^^^^^^^^^ FussyPedant/Ruby/ConsistentArrayCoercion: Use `Array(...)` to ensure an array, not `(... || [])`.
+      RUBY
+    end
+
+    it 'flags only the inner || when parens are call args' do
+      expect_offense(<<~RUBY)
+        foo(rows || [])
+            ^^^^^^^^^^ FussyPedant/Ruby/ConsistentArrayCoercion: Use `Array(...)` to ensure an array, not `(... || [])`.
+      RUBY
+    end
+
+    it 'ignores a non-empty-array default' do
+      expect_no_offenses('(rows || [1])')
+    end
   end
 
   context 'with logical_or style' do
