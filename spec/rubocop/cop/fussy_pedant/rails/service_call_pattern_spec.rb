@@ -422,6 +422,16 @@ RSpec.describe RuboCop::Cop::FussyPedant::Rails::ServiceCallPattern, :config do
       RUBY
     end
 
+    # Robustness E: superclass file resolves but is unparseable (syntax
+    # error) -> graceful fall-back, MISSING_CALL still fires.
+    it 'still flags when the superclass file has a syntax error' do
+      expect_offense(<<~RUBY, '/app/services/uses_broken.rb')
+        class UsesBroken < BrokenBase
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ FussyPedant/Rails/ServiceCallPattern: Service objects must implement `def self.call(...)`
+        end
+      RUBY
+    end
+
     # Behavior C: Data.define constant on .new (cross-file, Rule 5)
     it 'does not flag .new on a Data.define constant (assignment form)' do
       allow(File).to receive(:exist?).and_call_original

@@ -204,6 +204,10 @@ module RuboCop
           # Resolves a const node to the source file it would live in under
           # the configured ServicesDirectory. Returns nil when the receiver
           # is not a const or no ServicesDirectory is configured.
+          #
+          # Only plain `Foo::Bar` namespaces resolve to a file; cbase-qualified
+          # (`::Foo`) or `self::`-qualified superclasses intentionally fall
+          # through to existing behavior (their derived path won't resolve).
           def const_file_path(const_node)
             return unless const_node&.const_type?
             return unless services_directory
@@ -306,7 +310,7 @@ module RuboCop
           end
 
           def load_ast(path)
-            return unless File.exist?(path)
+            return unless File.file?(path)
 
             RuboCop::ProcessedSource.from_file(path, target_ruby_version).ast
           rescue StandardError
