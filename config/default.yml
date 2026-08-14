@@ -69,6 +69,10 @@ FussyPedant/Ruby/NoTerminalGuardClause:
   Enabled: true
   Description: 'Use if/else or case/when instead of guard clause(s) before the final expression.'
 
+FussyPedant/Ruby/SpaceInsidePercentArray:
+  Enabled: true
+  Description: 'Put a space inside the delimiters of a percent array.'
+
 FussyPedant/Rails/AssociationOrder:
   Enabled: true
   CheckAlphabetical: true
