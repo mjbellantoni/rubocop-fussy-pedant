@@ -40,6 +40,28 @@ RSpec.describe RuboCop::Cop::FussyPedant::Ruby::SinglePrivateClassMethod, :confi
     RUBY
   end
 
+  it 'splits the parenthesized form into paren-less directives' do
+    expect_offense(<<~RUBY)
+      private_class_method(:a, :b)
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ FussyPedant/Ruby/SinglePrivateClassMethod: Use a separate `private_class_method` directive for each method.
+    RUBY
+    expect_correction(<<~RUBY)
+      private_class_method :a
+      private_class_method :b
+    RUBY
+  end
+
+  it 'keeps a trailing comment on the final split line' do
+    expect_offense(<<~RUBY)
+      private_class_method :a, :b # note
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^ FussyPedant/Ruby/SinglePrivateClassMethod: Use a separate `private_class_method` directive for each method.
+    RUBY
+    expect_correction(<<~RUBY)
+      private_class_method :a
+      private_class_method :b # note
+    RUBY
+  end
+
   it 'accepts a single name' do
     expect_no_offenses('private_class_method :a')
   end
