@@ -357,4 +357,110 @@ RSpec.describe RuboCop::Cop::FussyPedant::Rails::ServiceCallPattern, :config do
       RUBY
     end
   end
+
+  # Behavior A: Data.define value objects (in-file, no I/O)
+  context 'when a class has a Data.define superclass' do
+    it 'does not register a missing-call offense (class form)' do
+      expect_no_offenses(<<~RUBY, '/app/services/strategy_result.rb')
+        class StrategyResult < Data.define(:a, :b)
+        end
+      RUBY
+    end
+
+    it 'does not register a missing-call offense with a body' do
+      expect_no_offenses(<<~RUBY, '/app/services/strategy_result.rb')
+        class StrategyResult < Data.define(:a, :b)
+          def summary
+            "\#{a}-\#{b}"
+          end
+        end
+      RUBY
+    end
+  end
+
+  # Behaviors B and C rely on cross-file resolution using real fixtures.
+  context 'when ServicesDirectory points at the fixtures tree' do
+    let(:fixtures_dir) { 'spec/fixtures/service_call_pattern' }
+
+    before do
+      allow(cop).to receive(:cop_config).and_return(
+        'ServicesDirectory' => fixtures_dir,
+        'Enabled' => true
+      )
+    end
+
+    # Behavior B: inherited self.call (cross-file)
+    it 'does not flag a service that inherits self.call from a base class' do
+      expect_no_offenses(<<~RUBY, '/app/services/rent_manager.rb')
+        class RentManager < Extractors::Base
+        end
+      RUBY
+    end
+
+    it 'follows the superclass chain across multiple levels' do
+      expect_no_offenses(<<~RUBY, '/app/services/deep_manager.rb')
+        class DeepManager < Extractors::Middle
+        end
+      RUBY
+    end
+
+    # Behavior E / fall-back: superclass file resolves but has no self.call
+    it 'still flags when the superclass does not define self.call' do
+      expect_offense(<<~RUBY, '/app/services/plain_manager.rb')
+        class PlainManager < PlainBase
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ FussyPedant/Rails/ServiceCallPattern: Service objects must implement `def self.call(...)`
+        end
+      RUBY
+    end
+
+    # Fall-back: superclass file cannot be resolved -> current behavior
+    it 'still flags when the superclass file cannot be resolved' do
+      expect_offense(<<~RUBY, '/app/services/unknown_manager.rb')
+        class UnknownManager < Nonexistent::Base
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ FussyPedant/Rails/ServiceCallPattern: Service objects must implement `def self.call(...)`
+        end
+      RUBY
+    end
+
+    # Behavior C: Data.define constant on .new (cross-file, Rule 5)
+    it 'does not flag .new on a Data.define constant (assignment form)' do
+      allow(File).to receive(:exist?).and_call_original
+      allow(File).to receive(:exist?).with(/strategy_result\.rb$/).and_return(true)
+
+      expect_no_offenses(<<~RUBY, '/app/controllers/users_controller.rb')
+        class UsersController
+          def create
+            StrategyResult.new(1, 2)
+          end
+        end
+      RUBY
+    end
+
+    it 'does not flag .new on a Data.define constant (class form)' do
+      allow(File).to receive(:exist?).and_call_original
+      allow(File).to receive(:exist?).with(/coordinate\.rb$/).and_return(true)
+
+      expect_no_offenses(<<~RUBY, '/app/controllers/geo_controller.rb')
+        class GeoController
+          def show
+            Coordinate.new(1.0, 2.0)
+          end
+        end
+      RUBY
+    end
+
+    it 'still flags .new on a real service class (fall-back)' do
+      allow(File).to receive(:exist?).and_call_original
+      allow(File).to receive(:exist?).with(/middle\.rb$/).and_return(true)
+
+      expect_offense(<<~RUBY, '/app/controllers/rent_controller.rb')
+        class RentController
+          def create
+            Extractors::Middle.new
+            ^^^^^^^^^^^^^^^^^^^^^^ FussyPedant/Rails/ServiceCallPattern: Services should be invoked via .call, not .new
+          end
+        end
+      RUBY
+    end
+  end
 end
