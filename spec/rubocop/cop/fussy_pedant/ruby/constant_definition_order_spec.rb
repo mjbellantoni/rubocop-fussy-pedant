@@ -49,4 +49,16 @@ RSpec.describe RuboCop::Cop::FussyPedant::Ruby::ConstantDefinitionOrder, :config
       end
     RUBY
   end
+
+  it 'does not merge constants from a nested class into the outer run' do
+    expect_no_offenses(<<~RUBY)
+      class Foo
+        Z = 1
+
+        class Bar
+          A = 2
+        end
+      end
+    RUBY
+  end
 end
