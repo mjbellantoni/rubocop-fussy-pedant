@@ -21,4 +21,20 @@ RSpec.describe RuboCop::Cop::FussyPedant::Ruby::NoNamespaceAssignment, :config d
       klass.new
     RUBY
   end
+
+  it 'registers a single offense for chained resolution through a local variable' do
+    expect_offense(<<~RUBY)
+      ns = Integrations::CorpusImport
+      ns::Foo::Bar
+      ^^^^^^^ FussyPedant/Ruby/NoNamespaceAssignment: Reference the namespace directly instead of resolving a constant through a local variable.
+    RUBY
+  end
+
+  it 'does not flag constant resolution through an instance variable' do
+    expect_no_offenses('@thing::Foo')
+  end
+
+  it 'does not flag constant resolution through a send' do
+    expect_no_offenses('self.class::Foo')
+  end
 end
