@@ -43,6 +43,16 @@ RSpec.describe RuboCop::Cop::FussyPedant::Ruby::InitializeAssignmentOrder, :conf
     RUBY
   end
 
+  it 'ignores instance variable assignments nested in blocks' do
+    expect_no_offenses(<<~RUBY)
+      def initialize
+        @z = 1
+        items.each { |i| @seen = i }
+        @a = 2
+      end
+    RUBY
+  end
+
   it 'ignores a single assignment' do
     expect_no_offenses(<<~RUBY)
       def initialize
