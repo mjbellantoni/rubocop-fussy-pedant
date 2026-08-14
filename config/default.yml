@@ -57,6 +57,10 @@ FussyPedant/Ruby/CommentLineLength:
   Enabled: true
   MaxColumn: 72
 
+FussyPedant/Ruby/InitializeAssignmentOrder:
+  Enabled: true
+  Description: 'Alphabetize instance variable assignments in initialize.'
+
 FussyPedant/Ruby/NoNonAsciiInComment:
   Enabled: true
   Description: 'Avoid non-ASCII characters in comments.'
