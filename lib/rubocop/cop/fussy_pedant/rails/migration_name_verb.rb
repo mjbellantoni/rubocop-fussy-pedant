@@ -6,6 +6,10 @@ module RuboCop
       module Rails
         # Requires ActiveRecord migration class names to start with a verb.
         #
+        # Scoped by the `Include` path (db/migrate). Every class in those
+        # files is checked regardless of superclass, so helper or nested
+        # classes are also expected to start with a verb.
+        #
         # @example
         #   # bad
         #   class KeyLeaseAgreementUniquenessOnTenancySpan < ActiveRecord::Migration[7.1]
