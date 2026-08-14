@@ -53,6 +53,11 @@ FussyPedant/FactoryBot/TraitsAlphabeticalOrder:
   Include:
     - 'spec/support/factories/**/*.rb'
 
+FussyPedant/Ruby/AttrShadowingBuiltin:
+  Enabled: true
+  Description: 'Do not shadow built-in methods with attr_* accessors.'
+  AllowedNames: []
+
 FussyPedant/Ruby/CommentLineLength:
   Enabled: true
   MaxColumn: 72
