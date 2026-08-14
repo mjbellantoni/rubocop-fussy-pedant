@@ -73,6 +73,10 @@ FussyPedant/Ruby/InitializeAssignmentOrder:
   Enabled: true
   Description: 'Alphabetize instance variable assignments in initialize.'
 
+FussyPedant/Ruby/NoNamespaceAssignment:
+  Enabled: true
+  Description: 'Do not resolve constants through a local variable.'
+
 FussyPedant/Ruby/NoNonAsciiInComment:
   Enabled: true
   Description: 'Avoid non-ASCII characters in comments.'
