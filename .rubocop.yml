@@ -2,6 +2,12 @@
 require:
   - rubocop-rspec
 
+# Merge our Exclude with RuboCop's defaults (which exclude vendor/**/*,
+# .git/**/*, etc.) instead of replacing them.
+inherit_mode:
+  merge:
+    - Exclude
+
 AllCops:
   TargetRubyVersion: 3.3
   NewCops: enable
