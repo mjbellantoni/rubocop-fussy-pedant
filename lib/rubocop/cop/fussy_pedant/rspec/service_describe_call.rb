@@ -27,6 +27,8 @@ module RuboCop
           MSG = 'Remove redundant `describe \'%<method>s\'` — ' \
                 'service specs test a single method.'
 
+          HOOK_METHODS = %i[before after around].freeze
+
           def on_block(node)
             return unless rspec_describe?(node)
 
@@ -34,33 +36,35 @@ module RuboCop
             children.each do |child|
               next unless child.block_type? && call_describe?(child)
 
-              message = format(MSG, method: describe_text(child))
-              if hook_scope_leak?(child, children)
-                add_offense(child.send_node, message: message)
-              else
-                add_offense(child.send_node, message: message) do |corrector|
-                  autocorrect(corrector, child, node)
-                end
-              end
+              handle_describe_call(node, child, children)
             end
           end
           alias on_numblock on_block
 
           private
 
-          HOOK_METHODS = %i[before after around].freeze
-
-          def hook_scope_leak?(describe_block, siblings)
-            has_hooks?(describe_block) && has_sibling_blocks?(describe_block, siblings)
+          def handle_describe_call(node, child, children)
+            message = format(MSG, method: describe_text(child))
+            if hook_scope_leak?(child, children)
+              add_offense(child.send_node, message: message)
+            else
+              add_offense(child.send_node, message: message) do |corrector|
+                autocorrect(corrector, child, node)
+              end
+            end
           end
 
-          def has_hooks?(node)
+          def hook_scope_leak?(describe_block, siblings)
+            hooks?(describe_block) && sibling_blocks?(describe_block, siblings)
+          end
+
+          def hooks?(node)
             body_children(node.body).any? do |child|
               child.block_type? && HOOK_METHODS.include?(child.method_name)
             end
           end
 
-          def has_sibling_blocks?(node, siblings)
+          def sibling_blocks?(node, siblings)
             siblings.any? { |s| s != node && s.block_type? }
           end
 

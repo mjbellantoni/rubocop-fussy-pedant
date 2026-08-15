@@ -198,17 +198,22 @@ module RuboCop
             sorted.each_with_index do |method_info, i|
               sep = visibility_separator(method_info, prev_visibility, indent)
               lines.concat(sep)
-              lines << if i.zero?
-                         method_info[:node].source
-                       elsif sep.any?
-                         "#{indent}#{method_info[:node].source}"
-                       else
-                         "\n#{indent}#{method_info[:node].source}"
-                       end
+              lines << method_line(method_info, indent, i, sep)
               prev_visibility = method_info[:visibility]
             end
 
             lines.join("\n")
+          end
+
+          def method_line(method_info, indent, index, sep)
+            source = method_info[:node].source
+            if index.zero?
+              source
+            elsif sep.any?
+              "#{indent}#{source}"
+            else
+              "\n#{indent}#{source}"
+            end
           end
 
           def visibility_separator(method_info, prev_visibility, indent)
