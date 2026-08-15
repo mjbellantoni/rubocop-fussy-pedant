@@ -412,7 +412,6 @@ RSpec.describe RuboCop::Cop::FussyPedant::Ruby::NoTerminalGuardClause, :config d
   end
 
   context 'with edge cases' do
-
     context 'when guard uses unless' do
       it 'registers an offense and corrects with flipped branches' do
         expect_offense(<<~RUBY)
