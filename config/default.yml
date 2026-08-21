@@ -78,6 +78,10 @@ FussyPedant/Ruby/InitializeAssignmentOrder:
   Enabled: true
   Description: 'Alphabetize instance variable assignments in initialize.'
 
+FussyPedant/Ruby/NoFilterGuardInEach:
+  Enabled: true
+  Description: 'Filter on the receiver instead of a `next` guard inside `each`.'
+
 FussyPedant/Ruby/NoNamespaceAssignment:
   Enabled: true
   Description: 'Do not resolve constants through a local variable.'
