@@ -4,12 +4,12 @@ module RuboCop
   module Cop
     module FussyPedant
       module Ruby
-        # Flags a `next` guard whose only job is filtering, when it
-        # opens an `each` block. Deciding *which* elements to act on
+        # Flags `next` guards whose only job is filtering, when they
+        # open an `each` block. Deciding *which* elements to act on
         # belongs on the receiver, not inside the block.
         #
-        # Only a guard that is side-effect free and depends on the
-        # block parameter is flagged, since only those can move to
+        # Only guards that are side-effect free and depend on the
+        # block parameter are flagged, since only those can move to
         # `select`/`reject` without changing behaviour.
         #
         # @example
@@ -25,16 +25,25 @@ module RuboCop
         #     permitted[field] = normalize(permitted[field])
         #   end
         #
+        #   # bad - stacked guards filter just as much
+        #   fields.each do |field|
+        #     next unless field.ok?
+        #     next if field.empty?
+        #     process(field)
+        #   end
+        #
+        #   # good
+        #   fields.select(&:ok?).reject(&:empty?).each do |field|
+        #     process(field)
+        #   end
+        #
         #   # good - the guard has a side effect, so it must stay
         #   fields.each do |field|
         #     next unless field.strip!
         #     process(field)
         #   end
         class NoFilterGuardInEach < RuboCop::Cop::Base
-          MSG_SELECT = 'Use `select` on the receiver instead of a ' \
-                       '`next unless` filter guard.'
-          MSG_REJECT = 'Use `reject` on the receiver instead of a ' \
-                       '`next if` filter guard.'
+          MSG = 'Use %<methods>s on the receiver instead of %<guards>s.'
 
           ASSIGNMENT_TYPES = %i[
             lvasgn ivasgn cvasgn gvasgn casgn masgn
@@ -46,29 +55,71 @@ module RuboCop
           MUTATING_METHODS = %i[<< push concat].freeze
 
           def on_block(node)
+            check_each_block(node, block_arg_names(node.arguments))
+          end
+
+          def on_numblock(node)
+            names = (1..node.children[1]).map { |index| :"_#{index}" }
+            check_each_block(node, names)
+          end
+
+          def on_itblock(node)
+            check_each_block(node, [:it])
+          end
+
+          private
+
+          def check_each_block(node, param_names)
             return unless node.send_node.method?(:each)
 
             body = node.body
             return unless body&.begin_type?
 
             statements = body.children
-            guard = statements.first
-            return unless filter_guard?(guard, node.arguments)
-            return if next_guard?(statements[1])
+            guards = leading_filter_guards(statements, param_names)
+            return if guards.empty?
+            return if guards.size == statements.size
+            return if next_guard?(statements[guards.size])
 
-            add_offense(guard, message: message_for(guard))
+            add_offense(guards.first, message: message_for(guards))
           end
 
-          private
+          def leading_filter_guards(statements, param_names)
+            guards = []
+            statements.each do |statement|
+              break unless filter_guard?(statement, param_names)
 
-          def message_for(guard)
-            guard.unless? ? MSG_SELECT : MSG_REJECT
+              guards << statement
+            end
+            guards
           end
 
-          def filter_guard?(node, block_args)
+          def message_for(guards)
+            format(MSG, methods: methods_phrase(guards),
+                        guards: guards_phrase(guards))
+          end
+
+          def methods_phrase(guards)
+            return '`select`' if guards.all?(&:unless?)
+            return '`reject`' if guards.none?(&:unless?)
+
+            '`select`/`reject`'
+          end
+
+          def guards_phrase(guards)
+            return 'these `next` filter guards' if guards.size > 1
+
+            if guards.first.unless?
+              'a `next unless` filter guard'
+            else
+              'a `next if` filter guard'
+            end
+          end
+
+          def filter_guard?(node, param_names)
             return false unless next_guard?(node)
 
-            references_block_param?(node.condition, block_args) &&
+            references_param?(node.condition, param_names) &&
               !side_effect?(node.condition)
           end
 
@@ -83,12 +134,11 @@ module RuboCop
             branch&.next_type? && branch.children.empty?
           end
 
-          def references_block_param?(condition, block_args)
-            names = block_arg_names(block_args)
-            return false if names.empty?
+          def references_param?(condition, param_names)
+            return false if param_names.empty?
 
             condition.each_node(:lvar).any? do |lvar|
-              names.include?(lvar.children.first)
+              param_names.include?(lvar.children.first)
             end
           end
 

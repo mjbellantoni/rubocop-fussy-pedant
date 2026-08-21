@@ -80,7 +80,7 @@ FussyPedant/Ruby/InitializeAssignmentOrder:
 
 FussyPedant/Ruby/NoFilterGuardInEach:
   Enabled: true
-  Description: 'Filter on the receiver instead of a `next` guard inside `each`.'
+  Description: 'Filter on the receiver instead of `next` guards inside `each`.'
 
 FussyPedant/Ruby/NoNamespaceAssignment:
   Enabled: true
