@@ -146,6 +146,12 @@ FussyPedant/Rails/MigrationNameVerb:
     - Cleanup
     - Recreate
 
+FussyPedant/Rails/NoBlankLineBetweenScopes:
+  Enabled: true
+  Description: 'Do not separate scope declarations with blank lines.'
+  Include:
+    - 'app/models/**/*.rb'
+
 FussyPedant/Rails/ServiceCallPattern:
   Enabled: true
   ServicesDirectory: ''
