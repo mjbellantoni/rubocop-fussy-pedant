@@ -145,6 +145,21 @@ FussyPedant/Rails/MigrationNameVerb:
     - Disable
     - Cleanup
     - Recreate
+    - Align
+    - Allow
+    - Consolidate
+    - Deduplicate
+    - Enforce
+    - Increase
+    - Make
+    - Normalize
+    - Pluralize
+    - Relax
+    - Reseed
+    - Restore
+    - Revise
+    - Simplify
+    - Tighten
 
 FussyPedant/Rails/ScopeOrder:
   Enabled: true
