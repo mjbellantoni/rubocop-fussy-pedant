@@ -149,8 +149,10 @@ FussyPedant/Rails/MigrationNameVerb:
 FussyPedant/Rails/ServiceCallPattern:
   Enabled: true
   ServicesDirectory: ''
-  Include:
-    - 'app/services/**/*.rb'
+  # No Include: the cop is dual-mode. It checks class structure only
+  # for files under app/services (see in_services_directory?), and
+  # flags `.new` on a service class from anywhere else, so scoping it
+  # to app/services would disable that second rule everywhere.
 
 FussyPedant/Rails/ControllerMethodOrder:
   Enabled: true
