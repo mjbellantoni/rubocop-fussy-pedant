@@ -61,4 +61,54 @@ RSpec.describe RuboCop::Cop::FussyPedant::Ruby::ConstantDefinitionOrder, :config
       end
     RUBY
   end
+
+  it 'accepts a constant that depends on the one before it' do
+    expect_no_offenses(<<~RUBY)
+      class Foo
+        UNDO_WINDOW = 30
+        SEND_DELAY = UNDO_WINDOW + 1
+      end
+    RUBY
+  end
+
+  it 'orders constants that follow a dependency' do
+    expect_offense(<<~RUBY)
+      class Foo
+        UNDO_WINDOW = 30
+        SEND_DELAY = UNDO_WINDOW + 1
+        APPLE = 2
+        ^^^^^^^^^ FussyPedant/Ruby/ConstantDefinitionOrder: Alphabetize constant definitions; `APPLE` should come before `SEND_DELAY`.
+      end
+    RUBY
+  end
+
+  it 'orders constants that precede a dependency' do
+    expect_offense(<<~RUBY)
+      class Foo
+        ZEBRA = 1
+        APPLE = 2
+        ^^^^^^^^^ FussyPedant/Ruby/ConstantDefinitionOrder: Alphabetize constant definitions; `APPLE` should come before `ZEBRA`.
+        SEND_DELAY = APPLE + 1
+      end
+    RUBY
+  end
+
+  it 'keeps ordering when the constant read is defined elsewhere' do
+    expect_offense(<<~RUBY)
+      class Foo
+        ZEBRA = 1
+        APPLE = OUTSIDE + 1
+        ^^^^^^^^^^^^^^^^^^^ FussyPedant/Ruby/ConstantDefinitionOrder: Alphabetize constant definitions; `APPLE` should come before `ZEBRA`.
+      end
+    RUBY
+  end
+
+  it 'finds a dependency nested inside the value' do
+    expect_no_offenses(<<~RUBY)
+      class Foo
+        LIMIT = 5
+        BOUNDS = [0, LIMIT].freeze
+      end
+    RUBY
+  end
 end
