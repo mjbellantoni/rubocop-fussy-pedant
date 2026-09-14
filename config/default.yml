@@ -146,9 +146,11 @@ FussyPedant/Rails/MigrationNameVerb:
     - Cleanup
     - Recreate
 
-FussyPedant/Rails/NoBlankLineBetweenScopes:
+FussyPedant/Rails/ScopeOrder:
   Enabled: true
-  Description: 'Do not separate scope declarations with blank lines.'
+  Description: 'Alphabetize scope declarations and keep them adjacent.'
+  CheckAlphabetical: true
+  CheckSpacing: true
   Include:
     - 'app/models/**/*.rb'
 
