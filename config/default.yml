@@ -53,6 +53,10 @@ FussyPedant/FactoryBot/TraitsAlphabeticalOrder:
   Include:
     - 'spec/support/factories/**/*.rb'
 
+FussyPedant/Ruby/AttrOrder:
+  Enabled: true
+  Description: 'Alphabetize attribute declarations, one macro and visibility at a time.'
+
 FussyPedant/Ruby/AttrShadowingBuiltin:
   Enabled: true
   Description: 'Do not shadow built-in methods with attr_reader/attr_accessor/attr.'
