@@ -34,3 +34,9 @@ Metrics/ClassLength:
 RSpec/ExampleLength:
   Exclude:
     - 'spec/**/*'
+
+# `%{foo}` in a cop spec is RuboCop's expect_offense interpolation DSL,
+# not a format string.
+Style/FormatStringToken:
+  Exclude:
+    - 'spec/**/*'

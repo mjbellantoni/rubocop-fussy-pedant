@@ -82,6 +82,18 @@ FussyPedant/Ruby/NoFilterGuardInEach:
   Enabled: true
   Description: 'Filter on the receiver instead of `next` guards inside `each`.'
 
+FussyPedant/Ruby/NoNegatedPredicate:
+  Enabled: true
+  Description: 'Define an inverse predicate instead of negating a predicate.'
+  # Only predicates with no inverse to call. Anything with a partner
+  # (empty?/any?, blank?/present?, persisted?/new_record?) is
+  # deliberately absent -- calling that partner is the point of the cop.
+  AllowedMethods:
+    - nil?
+    - all?
+    - one?
+    - frozen?
+
 FussyPedant/Ruby/NoNamespaceAssignment:
   Enabled: true
   Description: 'Do not resolve constants through a local variable.'
