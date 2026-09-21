@@ -79,6 +79,16 @@ RSpec.describe RuboCop::Cop::FussyPedant::Ruby::NoNegatedPredicate, :config do
     end
   end
 
+  %w[empty? any? none? positive? negative? even? odd? zero?
+     blank? present? persisted? new_record?].each do |predicate|
+    it "registers an offense for negated `#{predicate}`, which has an inverse" do
+      expect_offense(<<~RUBY, predicate: predicate)
+        !order.%{predicate}
+        ^^^^^^^^{predicate} FussyPedant/Ruby/NoNegatedPredicate: Define an inverse predicate instead of negating `#{predicate}`.
+      RUBY
+    end
+  end
+
   it 'registers an offense for a predicate that is not allowed by default' do
     expect_offense(<<~RUBY)
       !record.valid?

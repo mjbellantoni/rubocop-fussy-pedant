@@ -85,23 +85,14 @@ FussyPedant/Ruby/NoFilterGuardInEach:
 FussyPedant/Ruby/NoNegatedPredicate:
   Enabled: true
   Description: 'Define an inverse predicate instead of negating a predicate.'
+  # Only predicates with no inverse to call. Anything with a partner
+  # (empty?/any?, blank?/present?, persisted?/new_record?) is
+  # deliberately absent -- calling that partner is the point of the cop.
   AllowedMethods:
     - nil?
-    - empty?
-    - any?
-    - none?
     - all?
     - one?
-    - zero?
-    - positive?
-    - negative?
-    - even?
-    - odd?
     - frozen?
-    - blank?
-    - present?
-    - persisted?
-    - new_record?
 
 FussyPedant/Ruby/NoNamespaceAssignment:
   Enabled: true

@@ -12,8 +12,8 @@ module RuboCop
         # Predicates that take arguments or a block are never flagged,
         # because no inverse name can stand in for them (`!x.is_a?(Foo)`
         # has nothing to become). `AllowedMethods` exempts predicates
-        # whose negation is idiomatic; it replaces the default list
-        # rather than extending it.
+        # that have no inverse to call at all; it replaces the default
+        # list rather than extending it.
         #
         # @example
         #   # bad
@@ -26,7 +26,7 @@ module RuboCop
         #   # good - takes an argument
         #   !user.authorized_for?(:admin)
         #
-        #   # good - AllowedMethods
+        #   # good - AllowedMethods, no inverse exists
         #   !order.nil?
         class NoNegatedPredicate < RuboCop::Cop::Base
           MSG = 'Define an inverse predicate instead of negating ' \
@@ -34,13 +34,12 @@ module RuboCop
 
           RESTRICT_ON_SEND = %i[!].freeze
 
-          # Core and Rails predicates whose negation reads naturally, or
-          # whose inverse RuboCop's own Style/InverseMethods already
-          # suggests. Kept in step with config/default.yml by a spec.
-          DEFAULT_ALLOWED_METHODS = %w[
-            nil? empty? any? none? all? one? zero? positive? negative?
-            even? odd? frozen? blank? present? persisted? new_record?
-          ].to_set.freeze
+          # Predicates with no inverse to call. Anything with a partner
+          # -- `empty?`/`any?`, `blank?`/`present?`,
+          # `persisted?`/`new_record?` -- is deliberately absent, since
+          # calling that partner is the whole point of the cop. Kept in
+          # step with config/default.yml by a spec.
+          DEFAULT_ALLOWED_METHODS = %w[nil? all? one? frozen?].to_set.freeze
 
           def on_send(node)
             predicate = node.receiver
