@@ -129,6 +129,10 @@ FussyPedant/Rails/AssociationOrder:
   Include:
     - 'app/models/**/*.rb'
 
+FussyPedant/Rails/DelegateOrder:
+  Enabled: true
+  Description: 'Declare one method per delegate, alphabetized by target then method.'
+
 FussyPedant/Rails/EnumOrder:
   Enabled: true
   CheckAlphabetical: true
