@@ -1,0 +1,5 @@
+# Consulted by RuboCop::ConfigObsoletion, registered in
+# lib/rubocop-fussy-pedant.rb. Lets a consumer's stale .rubocop.yml
+# fail with the new cop name instead of an unrecognised-cop error.
+renamed:
+  FussyPedant/Ruby/NoTerminalGuardClause: FussyPedant/Ruby/GuardClausePlacement
