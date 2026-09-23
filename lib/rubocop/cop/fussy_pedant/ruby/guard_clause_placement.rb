@@ -5,8 +5,8 @@ module RuboCop
     module FussyPedant
       module Ruby
         # Flags guard clause(s) immediately before the final expression
-        # in a method or block body. These are disguised conditionals,
-        # not true early returns. Use `if/else` or `case/when` instead.
+        # in a method body. These are disguised conditionals, not true
+        # early returns. Use `if/else` or `case/when` instead.
         #
         # @example
         #   # bad
@@ -23,7 +23,7 @@ module RuboCop
         #       items.sort
         #     end
         #   end
-        class NoTerminalGuardClause < RuboCop::Cop::Base
+        class GuardClausePlacement < RuboCop::Cop::Base
           extend RuboCop::Cop::AutoCorrector
 
           MSG_IF = 'Use `if/else` instead of a guard clause ' \

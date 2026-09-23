@@ -78,6 +78,10 @@ FussyPedant/Ruby/ConstantDefinitionOrder:
   Enabled: true
   Description: 'Alphabetize constant definitions within a class or module.'
 
+FussyPedant/Ruby/GuardClausePlacement:
+  Enabled: true
+  Description: 'Use if/else or case/when instead of guard clause(s) before the final expression.'
+
 FussyPedant/Ruby/InitializeAssignmentOrder:
   Enabled: true
   Description: 'Alphabetize instance variable assignments in initialize.'
@@ -109,10 +113,6 @@ FussyPedant/Ruby/NoNonAsciiInComment:
 FussyPedant/Ruby/NoSingleLineCaseBody:
   Enabled: true
   Description: 'Move case/when/else body to the next line.'
-
-FussyPedant/Ruby/NoTerminalGuardClause:
-  Enabled: true
-  Description: 'Use if/else or case/when instead of guard clause(s) before the final expression.'
 
 FussyPedant/Ruby/SinglePrivateClassMethod:
   Enabled: true

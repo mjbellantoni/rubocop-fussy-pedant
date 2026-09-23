@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-RSpec.describe RuboCop::Cop::FussyPedant::Ruby::NoTerminalGuardClause, :config do
+RSpec.describe RuboCop::Cop::FussyPedant::Ruby::GuardClausePlacement, :config do
   let(:config) { RuboCop::Config.new }
 
   context 'with a single guard clause before the final expression' do
@@ -8,7 +8,7 @@ RSpec.describe RuboCop::Cop::FussyPedant::Ruby::NoTerminalGuardClause, :config d
       expect_offense(<<~RUBY)
         def foo
           return [] if items.empty?
-          ^^^^^^^^^^^^^^^^^^^^^^^^^ FussyPedant/Ruby/NoTerminalGuardClause: Use `if/else` instead of a guard clause before the final expression.
+          ^^^^^^^^^^^^^^^^^^^^^^^^^ FussyPedant/Ruby/GuardClausePlacement: Use `if/else` instead of a guard clause before the final expression.
           items.sort
         end
       RUBY
@@ -77,7 +77,7 @@ RSpec.describe RuboCop::Cop::FussyPedant::Ruby::NoTerminalGuardClause, :config d
       expect_offense(<<~RUBY)
         def foo
           return [] if items.empty?
-          ^^^^^^^^^^^^^^^^^^^^^^^^^ FussyPedant/Ruby/NoTerminalGuardClause: Use `case/when` instead of guard clauses before the final expression.
+          ^^^^^^^^^^^^^^^^^^^^^^^^^ FussyPedant/Ruby/GuardClausePlacement: Use `case/when` instead of guard clauses before the final expression.
           return [:default] if use_defaults?
           items.sort
         end
@@ -90,7 +90,7 @@ RSpec.describe RuboCop::Cop::FussyPedant::Ruby::NoTerminalGuardClause, :config d
       expect_offense(<<~RUBY)
         def foo
           return :a if cond_a?
-          ^^^^^^^^^^^^^^^^^^^^ FussyPedant/Ruby/NoTerminalGuardClause: Use `case/when` instead of guard clauses before the final expression.
+          ^^^^^^^^^^^^^^^^^^^^ FussyPedant/Ruby/GuardClausePlacement: Use `case/when` instead of guard clauses before the final expression.
           return :b if cond_b?
           return :c if cond_c?
           default_value
@@ -175,7 +175,7 @@ RSpec.describe RuboCop::Cop::FussyPedant::Ruby::NoTerminalGuardClause, :config d
       expect_offense(<<~RUBY)
         def foo
           return [] if items.empty?
-          ^^^^^^^^^^^^^^^^^^^^^^^^^ FussyPedant/Ruby/NoTerminalGuardClause: Use `if/else` instead of a guard clause before the final expression.
+          ^^^^^^^^^^^^^^^^^^^^^^^^^ FussyPedant/Ruby/GuardClausePlacement: Use `if/else` instead of a guard clause before the final expression.
           admin? ? admin_items : regular_items
         end
       RUBY
@@ -188,7 +188,7 @@ RSpec.describe RuboCop::Cop::FussyPedant::Ruby::NoTerminalGuardClause, :config d
         expect_offense(<<~RUBY)
           def foo
             return [] if items.empty?
-            ^^^^^^^^^^^^^^^^^^^^^^^^^ FussyPedant/Ruby/NoTerminalGuardClause: Use `if/else` instead of a guard clause before the final expression.
+            ^^^^^^^^^^^^^^^^^^^^^^^^^ FussyPedant/Ruby/GuardClausePlacement: Use `if/else` instead of a guard clause before the final expression.
             items.sort
           end
         RUBY
@@ -210,7 +210,7 @@ RSpec.describe RuboCop::Cop::FussyPedant::Ruby::NoTerminalGuardClause, :config d
         expect_offense(<<~RUBY)
           def foo
             return { error: 'not found' } if missing?
-            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ FussyPedant/Ruby/NoTerminalGuardClause: Use `if/else` instead of a guard clause before the final expression.
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ FussyPedant/Ruby/GuardClausePlacement: Use `if/else` instead of a guard clause before the final expression.
             build_response(data)
           end
         RUBY
@@ -233,7 +233,7 @@ RSpec.describe RuboCop::Cop::FussyPedant::Ruby::NoTerminalGuardClause, :config d
           class Foo
             def bar
               return [] if items.empty?
-              ^^^^^^^^^^^^^^^^^^^^^^^^^ FussyPedant/Ruby/NoTerminalGuardClause: Use `if/else` instead of a guard clause before the final expression.
+              ^^^^^^^^^^^^^^^^^^^^^^^^^ FussyPedant/Ruby/GuardClausePlacement: Use `if/else` instead of a guard clause before the final expression.
               items.sort
             end
           end
@@ -258,7 +258,7 @@ RSpec.describe RuboCop::Cop::FussyPedant::Ruby::NoTerminalGuardClause, :config d
         expect_offense(<<~RUBY)
           def foo
             return [] if items.empty?
-            ^^^^^^^^^^^^^^^^^^^^^^^^^ FussyPedant/Ruby/NoTerminalGuardClause: Use `if/else` instead of a guard clause before the final expression.
+            ^^^^^^^^^^^^^^^^^^^^^^^^^ FussyPedant/Ruby/GuardClausePlacement: Use `if/else` instead of a guard clause before the final expression.
             items
               .sort
               .uniq
@@ -284,7 +284,7 @@ RSpec.describe RuboCop::Cop::FussyPedant::Ruby::NoTerminalGuardClause, :config d
         expect_offense(<<~RUBY)
           def foo
             return [] if items.empty?
-            ^^^^^^^^^^^^^^^^^^^^^^^^^ FussyPedant/Ruby/NoTerminalGuardClause: Use `case/when` instead of guard clauses before the final expression.
+            ^^^^^^^^^^^^^^^^^^^^^^^^^ FussyPedant/Ruby/GuardClausePlacement: Use `case/when` instead of guard clauses before the final expression.
             return [:default] if use_defaults?
             items.sort
           end
@@ -310,7 +310,7 @@ RSpec.describe RuboCop::Cop::FussyPedant::Ruby::NoTerminalGuardClause, :config d
         expect_offense(<<~RUBY)
           def foo
             return :a if cond_a?
-            ^^^^^^^^^^^^^^^^^^^^ FussyPedant/Ruby/NoTerminalGuardClause: Use `case/when` instead of guard clauses before the final expression.
+            ^^^^^^^^^^^^^^^^^^^^ FussyPedant/Ruby/GuardClausePlacement: Use `case/when` instead of guard clauses before the final expression.
             return :b if cond_b?
             return :c if cond_c?
             default_value
@@ -359,7 +359,7 @@ RSpec.describe RuboCop::Cop::FussyPedant::Ruby::NoTerminalGuardClause, :config d
       expect_offense(<<~RUBY)
         def foo
           return [] if items.empty?
-          ^^^^^^^^^^^^^^^^^^^^^^^^^ FussyPedant/Ruby/NoTerminalGuardClause: Use `if/else` instead of a guard clause before the final expression.
+          ^^^^^^^^^^^^^^^^^^^^^^^^^ FussyPedant/Ruby/GuardClausePlacement: Use `if/else` instead of a guard clause before the final expression.
           items.sort
         end
       RUBY
@@ -369,7 +369,7 @@ RSpec.describe RuboCop::Cop::FussyPedant::Ruby::NoTerminalGuardClause, :config d
   context 'when guard uses bare return and Style/GuardClause is disabled' do
     let(:config) do
       RuboCop::Config.new(
-        'FussyPedant/Ruby/NoTerminalGuardClause' => { 'Enabled' => true },
+        'FussyPedant/Ruby/GuardClausePlacement' => { 'Enabled' => true },
         'Style/GuardClause' => { 'Enabled' => false }
       )
     end
@@ -417,7 +417,7 @@ RSpec.describe RuboCop::Cop::FussyPedant::Ruby::NoTerminalGuardClause, :config d
         expect_offense(<<~RUBY)
           def foo
             return [] unless items.present?
-            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ FussyPedant/Ruby/NoTerminalGuardClause: Use `if/else` instead of a guard clause before the final expression.
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ FussyPedant/Ruby/GuardClausePlacement: Use `if/else` instead of a guard clause before the final expression.
             items.sort
           end
         RUBY
@@ -439,7 +439,7 @@ RSpec.describe RuboCop::Cop::FussyPedant::Ruby::NoTerminalGuardClause, :config d
         expect_offense(<<~RUBY)
           def foo
             return [] unless items.present?
-            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ FussyPedant/Ruby/NoTerminalGuardClause: Use `case/when` instead of guard clauses before the final expression.
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ FussyPedant/Ruby/GuardClausePlacement: Use `case/when` instead of guard clauses before the final expression.
             return [:default] if use_defaults?
             items.sort
           end
@@ -465,7 +465,7 @@ RSpec.describe RuboCop::Cop::FussyPedant::Ruby::NoTerminalGuardClause, :config d
         expect_offense(<<~RUBY)
           def foo
             return [] unless disposition
-            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ FussyPedant/Ruby/NoTerminalGuardClause: Use `case/when` instead of guard clauses before the final expression.
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ FussyPedant/Ruby/GuardClausePlacement: Use `case/when` instead of guard clauses before the final expression.
             return [:stopped] unless disposition.snoozed? || disposition.awaiting?
             items.sort
           end
@@ -491,7 +491,7 @@ RSpec.describe RuboCop::Cop::FussyPedant::Ruby::NoTerminalGuardClause, :config d
         expect_offense(<<~RUBY)
           def foo
             return [] unless admin? && active?
-            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ FussyPedant/Ruby/NoTerminalGuardClause: Use `if/else` instead of a guard clause before the final expression.
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ FussyPedant/Ruby/GuardClausePlacement: Use `if/else` instead of a guard clause before the final expression.
             items.sort
           end
         RUBY
@@ -523,7 +523,7 @@ RSpec.describe RuboCop::Cop::FussyPedant::Ruby::NoTerminalGuardClause, :config d
         expect_offense(<<~RUBY)
           def self.foo
             return [] if items.empty?
-            ^^^^^^^^^^^^^^^^^^^^^^^^^ FussyPedant/Ruby/NoTerminalGuardClause: Use `if/else` instead of a guard clause before the final expression.
+            ^^^^^^^^^^^^^^^^^^^^^^^^^ FussyPedant/Ruby/GuardClausePlacement: Use `if/else` instead of a guard clause before the final expression.
             items.sort
           end
         RUBY
@@ -545,7 +545,7 @@ RSpec.describe RuboCop::Cop::FussyPedant::Ruby::NoTerminalGuardClause, :config d
         expect_offense(<<~RUBY)
           def foo
             return [] if items.empty?
-            ^^^^^^^^^^^^^^^^^^^^^^^^^ FussyPedant/Ruby/NoTerminalGuardClause: Use `if/else` instead of a guard clause before the final expression.
+            ^^^^^^^^^^^^^^^^^^^^^^^^^ FussyPedant/Ruby/GuardClausePlacement: Use `if/else` instead of a guard clause before the final expression.
 
             items.sort
           end
@@ -570,7 +570,7 @@ RSpec.describe RuboCop::Cop::FussyPedant::Ruby::NoTerminalGuardClause, :config d
             return [] if items.empty?
             log_something
             return [:default] if use_defaults?
-            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ FussyPedant/Ruby/NoTerminalGuardClause: Use `if/else` instead of a guard clause before the final expression.
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ FussyPedant/Ruby/GuardClausePlacement: Use `if/else` instead of a guard clause before the final expression.
             items.sort
           end
         RUBY
