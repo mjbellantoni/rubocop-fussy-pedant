@@ -335,75 +335,64 @@ RSpec.describe RuboCop::Cop::FussyPedant::Ruby::GuardClausePlacement, :config do
     end
   end
 
-  context 'when guard uses bare return and Style/GuardClause is enabled' do
-    it 'does not register an offense to avoid autocorrect cycle' do
-      expect_no_offenses(<<~RUBY)
+  context 'when every guard in the run returns bare' do
+    it 'registers an offense but does not correct a single guard' do
+      expect_offense(<<~RUBY)
         def foo
           return if items.empty?
+          ^^^^^^^^^^^^^^^^^^^^^^ FussyPedant/Ruby/GuardClausePlacement: Use `if/else` instead of a guard clause before the final expression.
           items.sort
         end
       RUBY
+
+      expect_no_corrections
     end
 
-    it 'does not register an offense with multiple bare-return guards' do
-      expect_no_offenses(<<~RUBY)
+    it 'registers an offense but does not correct multiple guards' do
+      expect_offense(<<~RUBY)
         def foo
           return if items.empty?
+          ^^^^^^^^^^^^^^^^^^^^^^ FussyPedant/Ruby/GuardClausePlacement: Use `case/when` instead of guard clauses before the final expression.
           return if items.frozen?
           items.sort
         end
       RUBY
+
+      expect_no_corrections
     end
 
-    it 'still registers an offense when guard returns a value' do
-      expect_offense(<<~RUBY)
-        def foo
-          return [] if items.empty?
-          ^^^^^^^^^^^^^^^^^^^^^^^^^ FussyPedant/Ruby/GuardClausePlacement: Use `if/else` instead of a guard clause before the final expression.
-          items.sort
-        end
-      RUBY
-    end
-  end
-
-  context 'when guard uses bare return and Style/GuardClause is disabled' do
-    let(:config) do
-      RuboCop::Config.new(
-        'FussyPedant/Ruby/GuardClausePlacement' => { 'Enabled' => true },
-        'Style/GuardClause' => { 'Enabled' => false }
-      )
-    end
-
-    it 'corrects bare return if to unless without else' do
-      expect_offense(<<~RUBY)
-        def foo
-          return if items.empty?
-          ^^^^^^^^^^^^^^^^^^^^^^ Use `if/else` instead of a guard clause before the final expression.
-          items.sort
-        end
-      RUBY
-
-      expect_correction(<<~RUBY)
-        def foo
-          unless items.empty?
-            items.sort
-          end
-        end
-      RUBY
-    end
-
-    it 'corrects bare return unless to if without else' do
+    it 'reports a bare unless guard without correcting it' do
       expect_offense(<<~RUBY)
         def foo
           return unless items.present?
-          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Use `if/else` instead of a guard clause before the final expression.
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ FussyPedant/Ruby/GuardClausePlacement: Use `if/else` instead of a guard clause before the final expression.
+          items.sort
+        end
+      RUBY
+
+      expect_no_corrections
+    end
+  end
+
+  context 'when at least one guard in the run returns a value' do
+    it 'still corrects a mixed run to case/when' do
+      expect_offense(<<~RUBY)
+        def foo
+          return [] if items.empty?
+          ^^^^^^^^^^^^^^^^^^^^^^^^^ FussyPedant/Ruby/GuardClausePlacement: Use `case/when` instead of guard clauses before the final expression.
+          return if items.frozen?
           items.sort
         end
       RUBY
 
       expect_correction(<<~RUBY)
         def foo
-          if items.present?
+          case
+          when items.empty?
+            []
+          when items.frozen?
+            nil
+          else
             items.sort
           end
         end

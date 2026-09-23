@@ -8,6 +8,12 @@ module RuboCop
         # in a method body. These are disguised conditionals, not true
         # early returns. Use `if/else` or `case/when` instead.
         #
+        # A run whose guards all `return` bare, with no value, is
+        # reported but not autocorrected: the obvious rewrite is
+        # `unless cond ... end`, and core Style/GuardClause converts
+        # that straight back into a guard clause, so only an explicit
+        # `if/else` with a `nil` branch settles.
+        #
         # @example
         #   # bad
         #   def foo
@@ -19,6 +25,21 @@ module RuboCop
         #   def foo
         #     if items.empty?
         #       []
+        #     else
+        #       items.sort
+        #     end
+        #   end
+        #
+        #   # bad
+        #   def foo
+        #     return if items.empty?
+        #     items.sort
+        #   end
+        #
+        #   # good
+        #   def foo
+        #     if items.empty?
+        #       nil
         #     else
         #       items.sort
         #     end
@@ -47,15 +68,19 @@ module RuboCop
             guards = terminal_guard_clauses(statements)
             return if guards.empty?
             return if block_control_structure?(statements.last)
-            return if guard_clause_cycle?(guards)
 
             register_offense(guards, statements.last)
           end
 
           def register_offense(guards, final_expr)
             message = guards.size == 1 ? MSG_IF : MSG_CASE
-            add_offense(guards.first, message: message) do |corrector|
-              correct_guard_clauses(corrector, guards, final_expr)
+
+            if guards_correctable?(guards)
+              add_offense(guards.first, message: message) do |corrector|
+                correct_guard_clauses(corrector, guards, final_expr)
+              end
+            else
+              add_offense(guards.first, message: message)
             end
           end
 
@@ -82,16 +107,22 @@ module RuboCop
             node.case_type? || (node.if_type? && !node.ternary?)
           end
 
-          def guard_clause_cycle?(guards)
-            guard_clause_cop_enabled? && guards.all? { |g| bare_return?(g) }
+          # A run with no returned values has nothing worth preserving in
+          # a rewrite: there is no value for a `when cond then nil`
+          # branch to carry. Separately, a lone bare guard corrects to
+          # `unless ... end`, which Style/GuardClause converts straight
+          # back, looping the two cops.
+          #
+          # Named guards_correctable? (not correctable?) because
+          # RuboCop::Cop::AutocorrectLogic already defines a zero-arg
+          # correctable? on Base; overriding it here broke the framework's
+          # own autocorrect? check.
+          def guards_correctable?(guards)
+            guards.any? { |guard| returns_value?(guard) }
           end
 
-          def guard_clause_cop_enabled?
-            config.for_cop('Style/GuardClause')['Enabled']
-          end
-
-          def bare_return?(guard)
-            guard.if_branch.children.first.nil?
+          def returns_value?(guard)
+            !guard.if_branch.children.first.nil?
           end
 
           def guard_clause?(node)
@@ -111,21 +142,11 @@ module RuboCop
           end
 
           def build_if_else(guard, final_expr, indent)
-            return build_branchless(guard, final_expr, indent) if bare_return?(guard)
-
             if_val, else_val = if_else_branches(guard, final_expr, indent)
             "if #{guard.condition.source}\n" \
               "#{indent}  #{if_val}\n" \
               "#{indent}else\n" \
               "#{indent}  #{else_val}\n" \
-              "#{indent}end"
-          end
-
-          def build_branchless(guard, final_expr, indent)
-            keyword = guard.unless? ? 'if' : 'unless'
-            final_source = reindent_source(final_expr, indent)
-            "#{keyword} #{guard.condition.source}\n" \
-              "#{indent}  #{final_source}\n" \
               "#{indent}end"
           end
 
