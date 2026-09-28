@@ -86,6 +86,10 @@ FussyPedant/Ruby/InitializeAssignmentOrder:
   Enabled: true
   Description: 'Alphabetize instance variable assignments in initialize.'
 
+FussyPedant/Ruby/MemoizationBody:
+  Enabled: true
+  Description: 'Extract the body of a `@foo ||= begin ... end` memoization into a named method.'
+
 FussyPedant/Ruby/NoFilterGuardInEach:
   Enabled: true
   Description: 'Filter on the receiver instead of `next` guards inside `each`.'
