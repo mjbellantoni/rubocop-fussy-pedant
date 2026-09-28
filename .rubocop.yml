@@ -40,3 +40,10 @@ RSpec/ExampleLength:
 Style/FormatStringToken:
   Exclude:
     - 'spec/**/*'
+
+# This spec describes a core cop in order to pin the boundary between
+# it and one of ours, so it is filed next to the cop whose design it
+# defends rather than under a `style/` path this gem does not own.
+RSpec/SpecFilePathFormat:
+  Exclude:
+    - 'spec/rubocop/cop/fussy_pedant/ruby/memoization_body_boundary_spec.rb'
