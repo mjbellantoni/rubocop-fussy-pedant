@@ -185,6 +185,42 @@ FussyPedant/Rails/MigrationNameVerb:
     - Simplify
     - Tighten
 
+FussyPedant/Rails/NoInlineQuery:
+  Enabled: true
+  Description: 'Name queries as scopes or query objects; call sites do not build queries.'
+  # Relation builders, plus the three consumers that name a column.
+  # merge/except/only/with/and/or/from/lock/readonly are deliberately
+  # absent: each collides with a non-ActiveRecord receiver.
+  ForbiddenMethods:
+    - where
+    - rewhere
+    - not
+    - joins
+    - left_joins
+    - left_outer_joins
+    - includes
+    - preload
+    - eager_load
+    - references
+    - order
+    - reorder
+    - reverse_order
+    - in_order_of
+    - limit
+    - offset
+    - group
+    - regroup
+    - having
+    - distinct
+    - select
+    - reselect
+    - unscope
+    - none
+    - strict_loading
+    - pluck
+    - pick
+    - ids
+
 FussyPedant/Rails/ScopeOrder:
   Enabled: true
   Description: 'Alphabetize scope declarations and keep them adjacent.'
