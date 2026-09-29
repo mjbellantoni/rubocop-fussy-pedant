@@ -108,4 +108,79 @@ RSpec.describe RuboCop::Cop::FussyPedant::Rails::NoInlineQuery, :config do
       RUBY
     end
   end
+
+  describe 'names that collide with non-ActiveRecord receivers' do
+    it 'accepts `order` as a noun' do
+      expect_no_offenses(<<~RUBY, 'app/controllers/orders_controller.rb')
+        line_item.order
+      RUBY
+    end
+
+    it 'registers an offense for `order` with arguments' do
+      expect_offense(<<~RUBY, 'app/controllers/orders_controller.rb')
+        Order.pending.order(created_at: :desc)
+                      ^^^^^ #{message}
+      RUBY
+    end
+
+    it 'accepts Enumerable `select` with a block and no arguments' do
+      expect_no_offenses(<<~RUBY, 'app/controllers/orders_controller.rb')
+        orders.select { |order| order.pending? }
+      RUBY
+    end
+
+    it 'registers an offense for `select` with a column argument' do
+      expect_offense(<<~RUBY, 'app/controllers/orders_controller.rb')
+        Order.select(:id, :status)
+              ^^^^^^ #{message}
+      RUBY
+    end
+
+    it 'accepts `limit` as a reader' do
+      expect_no_offenses(<<~RUBY, 'app/controllers/orders_controller.rb')
+        plan.limit
+      RUBY
+    end
+
+    it 'registers an offense for `limit` with arguments' do
+      expect_offense(<<~RUBY, 'app/controllers/orders_controller.rb')
+        Order.pending.limit(5)
+                      ^^^^^ #{message}
+      RUBY
+    end
+
+    it 'accepts `offset` as a reader' do
+      expect_no_offenses(<<~RUBY, 'app/controllers/orders_controller.rb')
+        rect.offset
+      RUBY
+    end
+
+    it 'registers an offense for `offset` with arguments' do
+      expect_offense(<<~RUBY, 'app/controllers/orders_controller.rb')
+        Order.pending.offset(20)
+                      ^^^^^^ #{message}
+      RUBY
+    end
+
+    it 'accepts `group` as a reader' do
+      expect_no_offenses(<<~RUBY, 'app/controllers/orders_controller.rb')
+        membership.group
+      RUBY
+    end
+
+    it 'registers an offense for `group` with arguments' do
+      expect_offense(<<~RUBY, 'app/controllers/orders_controller.rb')
+        Order.group(:status)
+              ^^^^^ #{message}
+      RUBY
+    end
+
+    it 'does not treat a receiverless reader as a query' do
+      expect_no_offenses(<<~RUBY, 'app/services/report.rb')
+        def total
+          limit
+        end
+      RUBY
+    end
+  end
 end
