@@ -220,6 +220,12 @@ FussyPedant/Rails/NoInlineQuery:
     - pluck
     - pick
     - ids
+  # Where queries are allowed to be born. Consumers adding a directory
+  # need `inherit_mode: merge`; Exclude replaces rather than merges.
+  Exclude:
+    - '**/app/models/**/*'
+    - '**/app/queries/**/*'
+    - '**/db/**/*'
 
 FussyPedant/Rails/ScopeOrder:
   Enabled: true

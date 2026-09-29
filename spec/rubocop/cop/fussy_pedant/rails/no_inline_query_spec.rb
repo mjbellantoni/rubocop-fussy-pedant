@@ -175,12 +175,84 @@ RSpec.describe RuboCop::Cop::FussyPedant::Rails::NoInlineQuery, :config do
       RUBY
     end
 
-    it 'does not treat a receiverless reader as a query' do
+    it 'accepts a receiverless reader with no arguments' do
       expect_no_offenses(<<~RUBY, 'app/services/report.rb')
         def total
           limit
         end
       RUBY
     end
+  end
+
+  describe 'directory scoping' do
+    let(:config) do
+      RuboCop::Config.new(
+        'FussyPedant/Rails/NoInlineQuery' => {
+          'Enabled' => true,
+          'ForbiddenMethods' => described_class::DEFAULT_FORBIDDEN_METHODS.to_a,
+          'Exclude' => ['**/app/models/**/*', '**/app/queries/**/*', '**/db/**/*']
+        },
+        'AllCops' => { 'DisplayCopNames' => true }
+      )
+    end
+
+    let(:query) { "Order.where(status: :pending)\n" }
+
+    it 'accepts a query in a model' do
+      expect_no_offenses(query, 'app/models/order.rb')
+    end
+
+    it 'accepts a query in a model concern' do
+      expect_no_offenses(query, 'app/models/concerns/payable.rb')
+    end
+
+    it 'accepts a query in a query object' do
+      expect_no_offenses(query, 'app/queries/overdue_orders_query.rb')
+    end
+
+    it 'accepts a query in a migration' do
+      expect_no_offenses(query, 'db/migrate/20260101000000_backfill.rb')
+    end
+
+    it 'accepts a query in an engine model' do
+      expect_no_offenses(query, 'engines/billing/app/models/order.rb')
+    end
+
+    it 'registers an offense in a controller' do
+      expect_offense(<<~RUBY, 'app/controllers/orders_controller.rb')
+        Order.where(status: :pending)
+              ^^^^^ #{message}
+      RUBY
+    end
+
+    it 'registers an offense in a service' do
+      expect_offense(<<~RUBY, 'app/services/order_report.rb')
+        Order.where(status: :pending)
+              ^^^^^ #{message}
+      RUBY
+    end
+
+    it 'registers an offense in a spec' do
+      expect_offense(<<~RUBY, 'spec/models/order_spec.rb')
+        Order.where(status: :pending)
+              ^^^^^ #{message}
+      RUBY
+    end
+  end
+
+  it 'keeps DEFAULT_FORBIDDEN_METHODS in sync with config/default.yml' do
+    defaults = YAML.load_file('config/default.yml')
+    configured = defaults['FussyPedant/Rails/NoInlineQuery']['ForbiddenMethods']
+
+    expect(configured).to eq(described_class::DEFAULT_FORBIDDEN_METHODS.to_a)
+  end
+
+  it 'excludes the directories the design names' do
+    defaults = YAML.load_file('config/default.yml')
+    excluded = defaults['FussyPedant/Rails/NoInlineQuery']['Exclude']
+
+    expect(excluded).to eq(
+      ['**/app/models/**/*', '**/app/queries/**/*', '**/db/**/*']
+    )
   end
 end
