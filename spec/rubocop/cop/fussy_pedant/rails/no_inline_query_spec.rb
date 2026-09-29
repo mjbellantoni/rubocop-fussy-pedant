@@ -129,6 +129,18 @@ RSpec.describe RuboCop::Cop::FussyPedant::Rails::NoInlineQuery, :config do
       RUBY
     end
 
+    it 'accepts `select` with a symbol-to-proc block-pass' do
+      expect_no_offenses(<<~RUBY, 'app/controllers/orders_controller.rb')
+        items.select(&:valid?)
+      RUBY
+    end
+
+    it 'accepts `select` with a variable block-pass' do
+      expect_no_offenses(<<~RUBY, 'app/controllers/orders_controller.rb')
+        items.select(&block)
+      RUBY
+    end
+
     it 'registers an offense for `select` with a column argument' do
       expect_offense(<<~RUBY, 'app/controllers/orders_controller.rb')
         Order.select(:id, :status)

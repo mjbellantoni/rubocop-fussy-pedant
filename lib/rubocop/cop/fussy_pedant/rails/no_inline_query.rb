@@ -98,9 +98,16 @@ module RuboCop
           def forbidden?(node)
             name = node.method_name.to_s
             return false unless forbidden_methods.include?(name)
-            return node.arguments.any? if ARGUMENT_REQUIRED.include?(name)
+            return non_block_pass_arguments?(node) if ARGUMENT_REQUIRED.include?(name)
 
             true
+          end
+
+          # Block-pass arguments like `&:valid?` and `&block` do not count
+          # as arguments for disambiguation purposes. This predicate returns
+          # true only if the node has a literal argument (not a block-pass).
+          def non_block_pass_arguments?(node)
+            node.arguments.any? { |arg| arg.type != :block_pass }
           end
 
           # `Order.joins(:a).where(b).limit(5)` holds three forbidden
