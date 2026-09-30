@@ -45,10 +45,10 @@ RSpec.describe RuboCop::Cop::FussyPedant::Rails::NoInlineQuery, :config do
     RUBY
   end
 
-  it 'registers an offense for `pluck`, which names a column' do
+  it 'registers an offense for a builder that takes no arguments' do
     expect_offense(<<~RUBY, 'app/controllers/orders_controller.rb')
-      Order.pending.pluck(:email)
-                    ^^^^^ #{message}
+      Order.pending.distinct
+                    ^^^^^^^^ #{message}
     RUBY
   end
 
@@ -56,6 +56,20 @@ RSpec.describe RuboCop::Cop::FussyPedant::Rails::NoInlineQuery, :config do
     expect_offense(<<~RUBY, 'app/controllers/orders_controller.rb')
       Order.joins(:customer).where(status: :pending).limit(5)
             ^^^^^ #{message}
+    RUBY
+  end
+
+  it 'reports once when a named scope sits between two forbidden calls' do
+    expect_offense(<<~RUBY, 'app/controllers/orders_controller.rb')
+      Order.where(active: true).pending.limit(5)
+            ^^^^^ #{message}
+    RUBY
+  end
+
+  it 'reports once for a safe-navigation chain of forbidden calls' do
+    expect_offense(<<~RUBY, 'app/controllers/orders_controller.rb')
+      user&.orders&.where(status: :pending)&.limit(5)
+                    ^^^^^ #{message}
     RUBY
   end
 
@@ -68,17 +82,38 @@ RSpec.describe RuboCop::Cop::FussyPedant::Rails::NoInlineQuery, :config do
     RUBY
   end
 
-  it 'reports separately across a block in the chain' do
+  it 'reports once across a block receiver in the chain' do
     expect_offense(<<~RUBY, 'app/controllers/orders_controller.rb')
-      Order.where(status: :pending).map { |o| o.total }.first(3)
+      Order.where(status: :pending).map { |o| o.total }.select(:id)
             ^^^^^ #{message}
     RUBY
   end
 
-  it 'walks through a numbered-parameter block receiver' do
+  it 'reports once across a numbered-parameter block receiver' do
     expect_offense(<<~RUBY, 'app/controllers/orders_controller.rb')
-      Order.joins(:customer).map { _1.total }
+      Order.where(status: :pending).map { _1.total }.select(:id)
             ^^^^^ #{message}
+    RUBY
+  end
+
+  context 'with Ruby 3.4' do
+    let(:ruby_version) { 3.4 }
+
+    it 'reports once across an `it` block receiver' do
+      expect_offense(<<~RUBY, 'app/controllers/orders_controller.rb')
+        Order.where(status: :pending).map { it.total }.select(:id)
+              ^^^^^ #{message}
+      RUBY
+    end
+  end
+
+  it 'reports a query built inside a block separately' do
+    expect_offense(<<~RUBY, 'app/controllers/orders_controller.rb')
+      Order.where(active: true).map do |o|
+            ^^^^^ #{message}
+        o.items.where(paid: true)
+                ^^^^^ #{message}
+      end
     RUBY
   end
 
@@ -98,12 +133,40 @@ RSpec.describe RuboCop::Cop::FussyPedant::Rails::NoInlineQuery, :config do
     RUBY
   end
 
+  it 'accepts the methods deliberately left off the list' do
+    expect_no_offenses(<<~RUBY, 'app/controllers/orders_controller.rb')
+      Order.pluck(:email)
+      Order.pending.pick(:id)
+      collection.ids
+      policy_scope.none
+      list.reorder(params[:ids])
+      validator.not(rule)
+      Order.excluding(current_user)
+      records.excluding(current_user)
+    RUBY
+  end
+
+  # ActiveRecord's form of most builders takes arguments, but a handful
+  # are idiomatically called bare. Exercising those with `(:x)` would
+  # never catch a regression that made arguments mandatory everywhere.
+  argless_builders = %w[distinct reverse_order unscoped strict_loading].freeze
+
   described_class::DEFAULT_FORBIDDEN_METHODS.each do |method|
     next if described_class::ARGUMENT_REQUIRED.include?(method)
+    next if argless_builders.include?(method)
 
     it "registers an offense for `#{method}`" do
       expect_offense(<<~RUBY, 'app/controllers/orders_controller.rb')
         Order.#{method}(:x)
+              #{'^' * method.length} #{message}
+      RUBY
+    end
+  end
+
+  argless_builders.each do |method|
+    it "registers an offense for a bare `#{method}`" do
+      expect_offense(<<~RUBY, 'app/controllers/orders_controller.rb')
+        Order.#{method}
               #{'^' * method.length} #{message}
       RUBY
     end
@@ -148,6 +211,13 @@ RSpec.describe RuboCop::Cop::FussyPedant::Rails::NoInlineQuery, :config do
       RUBY
     end
 
+    it 'registers an offense for `select` with a column and a block-pass' do
+      expect_offense(<<~RUBY, 'app/controllers/orders_controller.rb')
+        Order.select(:id, &formatter)
+              ^^^^^^ #{message}
+      RUBY
+    end
+
     it 'accepts `limit` as a reader' do
       expect_no_offenses(<<~RUBY, 'app/controllers/orders_controller.rb')
         plan.limit
@@ -187,6 +257,20 @@ RSpec.describe RuboCop::Cop::FussyPedant::Rails::NoInlineQuery, :config do
       RUBY
     end
 
+    it 'accepts `references` as a `has_many`' do
+      expect_no_offenses(<<~RUBY, 'app/controllers/orders_controller.rb')
+        candidate.references
+        job_application.references.create(name: name)
+      RUBY
+    end
+
+    it 'registers an offense for `references` with arguments' do
+      expect_offense(<<~RUBY, 'app/controllers/orders_controller.rb')
+        Order.references(:customer)
+              ^^^^^^^^^^ #{message}
+      RUBY
+    end
+
     it 'accepts a receiverless reader with no arguments' do
       expect_no_offenses(<<~RUBY, 'app/services/report.rb')
         def total
@@ -196,14 +280,72 @@ RSpec.describe RuboCop::Cop::FussyPedant::Rails::NoInlineQuery, :config do
     end
   end
 
+  describe 'ForbiddenMethods' do
+    context 'when configured' do
+      let(:config) do
+        RuboCop::Config.new(
+          'FussyPedant/Rails/NoInlineQuery' => { 'ForbiddenMethods' => ['pluck'] },
+          'AllCops' => { 'DisplayCopNames' => true }
+        )
+      end
+
+      it 'registers an offense for a configured method' do
+        expect_offense(<<~RUBY, 'app/controllers/orders_controller.rb')
+          Order.pending.pluck(:email)
+                        ^^^^^ #{message}
+        RUBY
+      end
+
+      it 'replaces rather than extends the default list' do
+        expect_no_offenses(<<~RUBY, 'app/controllers/orders_controller.rb')
+          Order.where(status: :pending)
+        RUBY
+      end
+    end
+
+    context 'when absent' do
+      let(:config) do
+        RuboCop::Config.new(
+          'FussyPedant/Rails/NoInlineQuery' => { 'Enabled' => true },
+          'AllCops' => { 'DisplayCopNames' => true }
+        )
+      end
+
+      it 'falls back to the default list rather than reporting nothing' do
+        expect_offense(<<~RUBY, 'app/controllers/orders_controller.rb')
+          Order.where(status: :pending)
+                ^^^^^ #{message}
+        RUBY
+      end
+    end
+
+    context 'when empty' do
+      let(:config) do
+        RuboCop::Config.new(
+          'FussyPedant/Rails/NoInlineQuery' => { 'ForbiddenMethods' => [] },
+          'AllCops' => { 'DisplayCopNames' => true }
+        )
+      end
+
+      it 'falls back to the default list rather than reporting nothing' do
+        expect_offense(<<~RUBY, 'app/controllers/orders_controller.rb')
+          Order.where(status: :pending)
+                ^^^^^ #{message}
+        RUBY
+      end
+    end
+  end
+
   describe 'directory scoping' do
+    # The shipped configuration itself, so these examples exercise the
+    # `Include`/`Exclude` shape consumers actually get.
+    let(:shipped) do
+      YAML.load_file('config/default.yml')['FussyPedant/Rails/NoInlineQuery']
+    end
+
     let(:config) do
       RuboCop::Config.new(
-        'FussyPedant/Rails/NoInlineQuery' => {
-          'Enabled' => true,
-          'ForbiddenMethods' => described_class::DEFAULT_FORBIDDEN_METHODS.to_a,
-          'Exclude' => ['**/app/models/**/*', '**/app/queries/**/*', '**/db/**/*']
-        },
+        'FussyPedant/Rails/NoInlineQuery' => shipped,
         'AllCops' => { 'DisplayCopNames' => true }
       )
     end
@@ -222,12 +364,25 @@ RSpec.describe RuboCop::Cop::FussyPedant::Rails::NoInlineQuery, :config do
       expect_no_offenses(query, 'app/queries/overdue_orders_query.rb')
     end
 
+    it 'accepts a query in a policy' do
+      expect_no_offenses(query, 'app/policies/order_policy.rb')
+    end
+
+    it 'accepts a query in a helper' do
+      expect_no_offenses(query, 'app/helpers/orders_helper.rb')
+    end
+
+    it 'accepts a query in a view component' do
+      expect_no_offenses(query, 'app/components/orders/table_component.rb')
+    end
+
     it 'accepts a query in a migration' do
       expect_no_offenses(query, 'db/migrate/20260101000000_backfill.rb')
     end
 
-    it 'accepts a query in an engine model' do
-      expect_no_offenses(query, 'engines/billing/app/models/order.rb')
+    it 'accepts a query outside app/ and lib/' do
+      expect_no_offenses(query, 'spec/models/order_spec.rb')
+      expect_no_offenses(query, 'config/initializers/orders.rb')
     end
 
     it 'registers an offense in a controller' do
@@ -244,8 +399,33 @@ RSpec.describe RuboCop::Cop::FussyPedant::Rails::NoInlineQuery, :config do
       RUBY
     end
 
-    it 'registers an offense in a spec' do
-      expect_offense(<<~RUBY, 'spec/models/order_spec.rb')
+    it 'registers an offense in lib' do
+      expect_offense(<<~RUBY, 'lib/reporting/order_export.rb')
+        Order.where(status: :pending)
+              ^^^^^ #{message}
+      RUBY
+    end
+
+    # An engine puts `app/` and `lib/` under a prefix, so both keys need
+    # their leading `**/` for engine code to be in scope at all and for
+    # an engine's model layer to be back out of it.
+    it 'accepts a query in an engine model' do
+      expect_no_offenses(query, 'engines/billing/app/models/invoice.rb')
+    end
+
+    it 'accepts a query in an engine policy' do
+      expect_no_offenses(query, 'engines/billing/app/policies/invoice_policy.rb')
+    end
+
+    it 'registers an offense in an engine controller' do
+      expect_offense(<<~RUBY, 'engines/billing/app/controllers/invoices_controller.rb')
+        Order.where(status: :pending)
+              ^^^^^ #{message}
+      RUBY
+    end
+
+    it 'registers an offense in an engine lib' do
+      expect_offense(<<~RUBY, 'engines/billing/lib/billing/calc.rb')
         Order.where(status: :pending)
               ^^^^^ #{message}
       RUBY
@@ -259,12 +439,22 @@ RSpec.describe RuboCop::Cop::FussyPedant::Rails::NoInlineQuery, :config do
     expect(configured).to eq(described_class::DEFAULT_FORBIDDEN_METHODS.to_a)
   end
 
-  it 'excludes the directories the design names' do
+  it 'limits the cop to app/ and lib/ in config/default.yml' do
+    defaults = YAML.load_file('config/default.yml')
+    included = defaults['FussyPedant/Rails/NoInlineQuery']['Include']
+
+    expect(included).to eq(['**/app/**/*.rb', '**/lib/**/*.rb'])
+  end
+
+  it 'excludes the directories the design names in config/default.yml' do
     defaults = YAML.load_file('config/default.yml')
     excluded = defaults['FussyPedant/Rails/NoInlineQuery']['Exclude']
 
     expect(excluded).to eq(
-      ['**/app/models/**/*', '**/app/queries/**/*', '**/db/**/*']
+      [
+        '**/app/models/**/*', '**/app/queries/**/*', '**/app/policies/**/*',
+        '**/app/helpers/**/*', '**/app/components/**/*', '**/db/**/*'
+      ]
     )
   end
 end

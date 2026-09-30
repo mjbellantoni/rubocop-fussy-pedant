@@ -188,13 +188,14 @@ FussyPedant/Rails/MigrationNameVerb:
 FussyPedant/Rails/NoInlineQuery:
   Enabled: true
   Description: 'Name queries as scopes or query objects; call sites do not build queries.'
-  # Relation builders, plus the three consumers that name a column.
-  # merge/except/only/with/and/or/from/lock/readonly are deliberately
-  # absent: each collides with a non-ActiveRecord receiver.
+  # Relation builders. merge/except/only/with/and/or/from/lock/readonly
+  # are deliberately absent: each collides with a non-ActiveRecord
+  # receiver. So are pluck/pick/ids, not, none, reorder and excluding;
+  # see the cop for why. Mirrored from DEFAULT_FORBIDDEN_METHODS and
+  # pinned by a spec.
   ForbiddenMethods:
     - where
     - rewhere
-    - not
     - joins
     - left_joins
     - left_outer_joins
@@ -203,7 +204,6 @@ FussyPedant/Rails/NoInlineQuery:
     - eager_load
     - references
     - order
-    - reorder
     - reverse_order
     - in_order_of
     - limit
@@ -215,16 +215,27 @@ FussyPedant/Rails/NoInlineQuery:
     - select
     - reselect
     - unscope
-    - none
+    - unscoped
     - strict_loading
-    - pluck
-    - pick
-    - ids
-  # Where queries are allowed to be born. Consumers adding a directory
-  # need `inherit_mode: merge`; Exclude replaces rather than merges.
+  # Where the cop looks at all. Off Gemfile, Rakefile, config/ and
+  # bin/, where these names are certainly not ActiveRecord. The leading
+  # `**/` is load-bearing here for the same reason as below: without it
+  # an engine's app/ and lib/ fall outside Include and the cop goes
+  # silent across every engine in the app.
+  Include:
+    - '**/app/**/*.rb'
+    - '**/lib/**/*.rb'
+  # Where queries are allowed to be born. The leading `**/` is
+  # load-bearing: without it an engine layout such as
+  # engines/billing/app/models/order.rb goes unscoped. Consumers
+  # adding a directory need `inherit_mode: merge`; both keys replace
+  # rather than merge.
   Exclude:
     - '**/app/models/**/*'
     - '**/app/queries/**/*'
+    - '**/app/policies/**/*'
+    - '**/app/helpers/**/*'
+    - '**/app/components/**/*'
     - '**/db/**/*'
 
 FussyPedant/Rails/ScopeOrder:
