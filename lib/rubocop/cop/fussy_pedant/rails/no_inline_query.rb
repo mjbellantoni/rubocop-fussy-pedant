@@ -45,8 +45,9 @@ module RuboCop
         # `Order.joins(:a).where(b).limit(5)` holds three forbidden calls
         # but is one defect, so the cop reports once, on the innermost
         # forbidden call, where construction begins. The walk descends
-        # through block nodes: `Order.where(a).map { }.select(:id)` is
-        # still one chain and still one offense.
+        # through block nodes and through parenthesized receivers, so
+        # `Order.where(a).map { }.select(:id)` and
+        # `(Order.where(a)).limit(5)` are each one chain and one offense.
         #
         # Not autocorrected. The cop can neither invent the name nor
         # choose between a scope, a class method and a query object.
@@ -182,16 +183,29 @@ module RuboCop
             false
           end
 
-          # A block interrupts the send chain: the AST for
+          # Two things interrupt the send chain. A block: the AST for
           # `Order.where(a).map { }.select(:id)` puts a block node
-          # between the two sends. Descend through it to the send it
-          # wraps so the walk still reaches the construction underneath.
+          # between the two sends, so descend to the send it wraps.
           # `map { _1 }` and `map { it }` are `numblock` and `itblock`,
           # not `block`, so all three have to be named.
+          #
+          # And parentheses: `(Order.where(a)).limit(5)` makes the
+          # receiver a `begin` node. `children.last` is the right child
+          # for both shapes it can take -- a parenthesized single
+          # expression has one child, and a multi-statement `(a; b)`
+          # has its value last. Neither can be empty, since `()` is not
+          # valid Ruby. `kwbegin` (`begin ... end.limit(5)`) is the
+          # identical case.
+          #
+          # Core `Style/RedundantParentheses` does flag and autocorrect
+          # the parenthesized shape, and is enabled by default -- but a
+          # consumer can disable it, so this cop does not lean on
+          # another cop's configuration to stay correct.
           def chained_receiver(node)
             case node.type
             when :send, :csend then node.receiver
             when :block, :numblock, :itblock then node.send_node
+            when :begin, :kwbegin then node.children.last
             end
           end
 
