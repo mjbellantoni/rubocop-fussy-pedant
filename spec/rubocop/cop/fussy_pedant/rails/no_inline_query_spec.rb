@@ -107,6 +107,22 @@ RSpec.describe RuboCop::Cop::FussyPedant::Rails::NoInlineQuery, :config do
     end
   end
 
+  it 'reports once across a parenthesized receiver' do
+    expect_offense(<<~RUBY, 'app/controllers/orders_controller.rb')
+      (Order.where(status: :pending)).limit(5)
+             ^^^^^ #{message}
+    RUBY
+  end
+
+  it 'reports once across a `begin ... end` receiver' do
+    expect_offense(<<~RUBY, 'app/controllers/orders_controller.rb')
+      begin
+        Order.where(status: :pending)
+              ^^^^^ #{message}
+      end.limit(5)
+    RUBY
+  end
+
   it 'reports a query built inside a block separately' do
     expect_offense(<<~RUBY, 'app/controllers/orders_controller.rb')
       Order.where(active: true).map do |o|
